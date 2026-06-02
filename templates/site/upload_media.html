@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Media — RMMV{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-camera me-2"></i>Upload Media</h2>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('site.dashboard') }}">Dashboard</a></li>
+      <li class="breadcrumb-item active">Upload Media</li>
+    </ol>
+  </nav>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card-rmmv">
+      <div class="card-header-rmmv">
+        <h5><i class="bi bi-cloud-arrow-up me-2"></i>Upload Photo or Video</h5>
+      </div>
+      <div class="card-body-rmmv">
+        <form method="POST" action="{{ url_for('site.upload_media') }}" enctype="multipart/form-data" id="mediaForm">
+          <!-- Project -->
+          <div class="mb-3">
+            <label class="form-label" for="project_id">
+              <i class="bi bi-folder2 me-1"></i> Project <span class="text-danger">*</span>
+            </label>
+            <select class="form-select" id="project_id" name="project_id" required>
+              <option value="" disabled selected>Select a project…</option>
+              {% for p in projects %}
+              <option value="{{ p.id }}">{{ p.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- File Input -->
+          <div class="mb-3">
+            <label class="form-label" for="media_file">
+              <i class="bi bi-file-earmark-image me-1"></i> Select File <span class="text-danger">*</span>
+            </label>
+            <input type="file" class="form-control" id="media_file" name="media_file"
+                   accept="image/*,video/*" required>
+            <div class="fs-xs text-muted mt-1">Accepted: JPEG, PNG, MP4, MOV. Max 50 MB.</div>
+          </div>
+
+          <!-- Preview Area -->
+          <div class="mb-3">
+            <label class="form-label">Preview</label>
+            <div class="file-preview" id="filePreview">
+              <div class="preview-placeholder" id="previewPlaceholder">
+                <i class="bi bi-image"></i>
+                <div>Select a file to preview</div>
+              </div>
+              <img id="imagePreview" src="#" alt="Preview" style="display:none;">
+              <video id="videoPreview" controls style="display:none;"></video>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="mb-4">
+            <label class="form-label" for="description">
+              <i class="bi bi-card-text me-1"></i> Description
+            </label>
+            <textarea class="form-control" id="description" name="description" rows="3"
+                      placeholder="Describe what this photo/video shows…"></textarea>
+          </div>
+
+          <!-- GPS Section -->
+          <div class="mb-4">
+            <label class="form-label">
+              <i class="bi bi-geo-alt me-1"></i> GPS Location
+            </label>
+            <div class="d-flex gap-2 mb-2">
+              <button type="button" class="btn btn-sm btn-rmmv btn-rmmv-secondary" id="captureGPSBtn">
+                <i class="bi bi-crosshair"></i> Capture Location
+              </button>
+              <span class="fs-xs text-muted align-self-center" id="gpsStatus">Not captured</span>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">Lat</span>
+                  <input type="text" class="form-control" id="id_latitude" name="latitude" readonly
+                         placeholder="—">
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">Lng</span>
+                  <input type="text" class="form-control" id="id_longitude" name="longitude" readonly
+                         placeholder="—">
+                </div>
+              </div>
+            </div>
+            <div id="mediaMiniMap" class="mini-map-container"></div>
+          </div>
+
+          <!-- Submit -->
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-rmmv btn-rmmv-primary">
+              <i class="bi bi-cloud-arrow-up"></i> Upload
+            </button>
+            <a href="{{ url_for('site.dashboard') }}" class="btn btn-rmmv btn-rmmv-outline">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // ---- Mini Map ----
+    var miniMapRef = initMiniMap('mediaMiniMap');
+
+    // ---- Capture GPS ----
+    var captureBtn = document.getElementById('captureGPSBtn');
+    var gpsStatus  = document.getElementById('gpsStatus');
+
+    captureBtn.addEventListener('click', function () {
+      gpsStatus.textContent = 'Capturing…';
+      captureGPS('id_latitude', 'id_longitude', miniMapRef);
+      setTimeout(function () {
+        var lat = document.getElementById('id_latitude').value;
+        if (lat) {
+          gpsStatus.innerHTML = '<i class="bi bi-check-circle text-success"></i> Location captured';
+        }
+      }, 3000);
+    });
+
+    // ---- File Preview ----
+    var fileInput       = document.getElementById('media_file');
+    var imagePreview    = document.getElementById('imagePreview');
+    var videoPreview    = document.getElementById('videoPreview');
+    var placeholder     = document.getElementById('previewPlaceholder');
+    var previewContainer = document.getElementById('filePreview');
+
+    fileInput.addEventListener('change', function () {
+      var file = this.files[0];
+      if (!file) return;
+
+      placeholder.style.display = 'none';
+      imagePreview.style.display = 'none';
+      videoPreview.style.display = 'none';
+
+      var url = URL.createObjectURL(file);
+
+      if (file.type.startsWith('image/')) {
+        imagePreview.src = url;
+        imagePreview.style.display = 'block';
+        previewContainer.classList.add('has-file');
+      } else if (file.type.startsWith('video/')) {
+        videoPreview.src = url;
+        videoPreview.style.display = 'block';
+        previewContainer.classList.add('has-file');
+      } else {
+        placeholder.innerHTML = '<i class="bi bi-file-earmark-x"></i><div>Unsupported file type</div>';
+        placeholder.style.display = 'block';
+        previewContainer.classList.remove('has-file');
+      }
+    });
+  });
+</script>
+{% endblock %}

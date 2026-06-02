@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In — RMMV Dashboard{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+  <!-- ====================================================================
+       LEFT PANEL — Branding
+       ==================================================================== -->
+  <div class="login-left">
+    <div class="login-branding">
+      <div class="brand-logo">RMMV<span class="accent-dot">.</span></div>
+      <p class="brand-subtitle">
+        Remote Management , Monitoring  &amp; Verification
+      </p>
+      <div class="brand-divider"></div>
+      <p class="brand-footer">
+        Government of Madhya Pradesh<br>
+        World Bank Assisted<br>
+        Smart Cities Mission
+      </p>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       RIGHT PANEL — Login Form
+       ==================================================================== -->
+  <div class="login-right">
+    <div class="login-card">
+      <h1 class="login-title">Welcome Back</h1>
+      <p class="login-subtitle">Sign in to continue to RMMV Dashboard</p>
+
+      <!-- Flash errors -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }} py-2 px-3 fs-sm" role="alert">
+          <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ message }}
+        </div>
+        {% endfor %}
+      {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('auth.login') }}" autocomplete="off">
+        <!-- Username -->
+        <div class="form-group mb-3">
+          <label class="form-label" for="username">Username</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-person"></i></span>
+            <input type="text" class="form-control" id="username" name="username"
+                   placeholder="Enter your username" required autofocus>
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="form-group mb-3">
+          <label class="form-label" for="password">Password</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+            <input type="password" class="form-control" id="password" name="password"
+                   placeholder="Enter your password" required>
+          </div>
+        </div>
+
+        <!-- Role -->
+        <div class="form-group mb-4">
+          <label class="form-label" for="role">Login As</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-shield-check"></i></span>
+            <select class="form-select" id="role" name="role">
+              <option value="state">State PMU</option>
+              <option value="ulb">ULB Officer</option>
+              <option value="site">Site Engineer</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="btn-login">
+          <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+        </button>
+      </form>
+
+      <div class="login-footer">
+        &copy; 2026 RMMV Dashboard &middot; All rights reserved
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Site Dashboard — RMMV{% endblock %}
+
+{% block content %}
+<!-- ====================================================================
+     GREETING CARD
+     ==================================================================== -->
+<div class="greeting-card">
+  <div class="greeting-title">
+    {% set hour = now.hour if now else 12 %}
+    {% if hour < 12 %}Good Morning{% elif hour < 17 %}Good Afternoon{% else %}Good Evening{% endif %},
+    {{ current_user.name or current_user.username }}!
+  </div>
+  <div class="greeting-date">
+    <i class="bi bi-calendar3 me-1"></i>
+    {{ now.strftime('%A, %d %B %Y') if now else 'Today' }}
+  </div>
+</div>
+
+<!-- ====================================================================
+     STATS ROW
+     ==================================================================== -->
+<div class="row g-3 mb-4 kpi-row">
+  <div class="col-lg-4 col-md-4 col-6">
+    <div class="kpi-card kpi-warning">
+      <i class="bi bi-hourglass-split kpi-icon"></i>
+      <div class="kpi-value">{{ pending_count }}</div>
+      <div class="kpi-label">Pending Tasks</div>
+    </div>
+  </div>
+
+  <div class="col-lg-4 col-md-4 col-6">
+    <div class="kpi-card kpi-primary">
+      <i class="bi bi-send kpi-icon"></i>
+      <div class="kpi-value">{{ submitted_today }}</div>
+      <div class="kpi-label">Submitted Today</div>
+    </div>
+  </div>
+
+  <div class="col-lg-4 col-md-4 col-12">
+    <div class="kpi-card kpi-success">
+      <i class="bi bi-check-circle kpi-icon"></i>
+      <div class="kpi-value">{{ approved_count }}</div>
+      <div class="kpi-label">Approved</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================================
+     QUICK ACTIONS
+     ==================================================================== -->
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <a href="{{ url_for('site.submit_entry') }}" class="text-decoration-none">
+      <div class="action-card">
+        <div class="action-icon"><i class="bi bi-plus-circle-dotted"></i></div>
+        <div class="action-title">Submit New Entry</div>
+        <div class="action-desc">Record site measurement data for a project activity</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-6">
+    <a href="{{ url_for('site.upload_media') }}" class="text-decoration-none">
+      <div class="action-card">
+        <div class="action-icon"><i class="bi bi-camera-fill"></i></div>
+        <div class="action-title">Upload Media</div>
+        <div class="action-desc">Upload geo-tagged photos and videos from the site</div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<!-- ====================================================================
+     RECENT ENTRIES
+     ==================================================================== -->
+<div class="card-rmmv">
+  <div class="card-header-rmmv">
+    <h5><i class="bi bi-journal-text me-2"></i>Recent Entries</h5>
+    <div class="header-actions">
+      <a href="{{ url_for('site.my_entries') }}" class="btn btn-sm btn-rmmv btn-rmmv-outline">
+        View All <i class="bi bi-arrow-right ms-1"></i>
+      </a>
+    </div>
+  </div>
+  <div class="card-body-rmmv">
+    {% for entry in recent_entries %}
+    <div class="d-flex align-items-center justify-content-between py-2 {% if not loop.last %}border-bottom{% endif %}">
+      <div>
+        <div class="fw-500 fs-sm">{{ entry.project.name }}</div>
+        <div class="fs-xs text-muted">
+          {{ entry.activity.activity_name if entry.activity else '—' }}
+          &middot; Qty: {{ entry.quantity }}
+          &middot; {{ entry.created_at.strftime('%d %b %Y') if entry.created_at else '—' }}
+        </div>
+      </div>
+      <span class="badge-status badge-{{ entry.status }}">{{ entry.status }}</span>
+    </div>
+    {% else %}
+    <div class="empty-state py-4">
+      <i class="bi bi-journal-x empty-icon"></i>
+      <div class="empty-title">No entries yet</div>
+      <div class="empty-text">Submit your first site entry to get started.</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

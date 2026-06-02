@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}ULB Dashboard — RMMV{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-speedometer2 me-2"></i>ULB Dashboard</h2>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item active">{{ ulb.name if ulb else 'Dashboard' }}</li>
+    </ol>
+  </nav>
+</div>
+
+<!-- ====================================================================
+     KPI CARDS ROW
+     ==================================================================== -->
+<div class="row g-3 mb-4 kpi-row">
+  <div class="col-xl-3 col-md-6 col-6">
+    <div class="kpi-card kpi-primary">
+      <i class="bi bi-building-gear kpi-icon"></i>
+      <div class="kpi-value">{{ my_projects_count }}</div>
+      <div class="kpi-label">My Projects</div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 col-6">
+    <div class="kpi-card kpi-success">
+      <i class="bi bi-graph-up-arrow kpi-icon"></i>
+      <div class="kpi-value">{{ "%.1f"|format(avg_physical) }}%</div>
+      <div class="kpi-label">Avg Physical %</div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 col-6">
+    <div class="kpi-card kpi-warning">
+      <i class="bi bi-hourglass-split kpi-icon"></i>
+      <div class="kpi-value">{{ pending_reviews }}</div>
+      <div class="kpi-label">Pending Reviews</div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 col-6">
+    <div class="kpi-card kpi-navy">
+      <i class="bi bi-check-circle kpi-icon"></i>
+      <div class="kpi-value">{{ approved_entries }}</div>
+      <div class="kpi-label">Approved Entries</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================================
+     MAP & CHART ROW
+     ==================================================================== -->
+<div class="row g-4 mb-4">
+  <!-- ULB Map -->
+  <div class="col-lg-6">
+    <div class="card-rmmv">
+      <div class="card-header-rmmv">
+        <h5><i class="bi bi-geo-alt me-2"></i>My Project Locations</h5>
+      </div>
+      <div class="card-body-rmmv p-0">
+        <div id="ulb-map" class="map-container" style="height:360px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Chart -->
+  <div class="col-lg-6">
+    <div class="chart-card">
+      <h5 class="chart-title"><i class="bi bi-bar-chart me-2"></i>Project Progress</h5>
+      <div class="chart-body" style="height:360px;">
+        <canvas id="ulbProgressChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================================
+     PROJECTS TABLE
+     ==================================================================== -->
+<div class="card-rmmv mb-4">
+  <div class="card-header-rmmv">
+    <h5><i class="bi bi-table me-2"></i>My Projects</h5>
+  </div>
+  <div class="card-body-rmmv p-0">
+    <div class="table-responsive-rmmv">
+      <table class="table-rmmv">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Project Name</th>
+            <th>Cost (₹ Cr)</th>
+            <th>Physical %</th>
+            <th>Financial %</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in projects %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td class="fw-500">{{ p.name }}</td>
+            <td>{{ "%.2f"|format(p.cost or 0) }}</td>
+            <td>
+              <span class="fw-600">{{ "%.1f"|format(p.physical_progress) }}%</span>
+              <div class="progress-mini">
+                <div class="progress-bar
+                  {% if p.physical_progress >= 75 %}bg-success
+                  {% elif p.physical_progress >= 50 %}bg-info
+                  {% elif p.physical_progress >= 25 %}bg-warning
+                  {% else %}bg-danger{% endif %}"
+                  style="width:{{ p.physical_progress }}%"></div>
+              </div>
+            </td>
+            <td>
+              <span class="fw-600">{{ "%.1f"|format(p.financial_progress) }}%</span>
+              <div class="progress-mini">
+                <div class="progress-bar bg-navy" style="width:{{ p.financial_progress }}%"></div>
+              </div>
+            </td>
+            <td>
+              <span class="badge-status badge-{{ p.status }}">{{ p.status }}</span>
+            </td>
+            <td>
+              <a href="{{ url_for('ulb.project_detail', id=p.id) }}"
+                 class="btn btn-sm btn-rmmv btn-rmmv-outline me-1">
+                <i class="bi bi-eye"></i> View
+              </a>
+              <a href="{{ url_for('ulb.project_detail', id=p.id) }}"
+                 class="btn btn-sm btn-rmmv btn-rmmv-primary">
+                <i class="bi bi-pencil-square"></i> Details
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7">
+              <div class="empty-state py-4">
+                <i class="bi bi-inbox empty-icon"></i>
+                <div class="empty-title">No projects assigned</div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================================
+     PENDING APPROVALS WIDGET
+     ==================================================================== -->
+<div class="card-rmmv">
+  <div class="card-header-rmmv">
+    <h5><i class="bi bi-check2-square me-2"></i>Pending Site Entries</h5>
+    <div class="header-actions">
+      <a href="{{ url_for('ulb.review_entries') }}" class="btn btn-sm btn-rmmv btn-rmmv-outline">
+        View All <i class="bi bi-arrow-right ms-1"></i>
+      </a>
+    </div>
+  </div>
+  <div class="card-body-rmmv">
+    {% for entry in pending_entries %}
+    <div class="entry-card entry-submitted">
+      <div class="entry-header">
+        <div>
+          <div class="entry-engineer">{{ entry.engineer.name or entry.engineer.username }}</div>
+          <div class="entry-meta">
+            <span><i class="bi bi-folder2"></i> {{ entry.project.name }}</span>
+            <span><i class="bi bi-activity"></i> {{ entry.activity.activity_name if entry.activity else '—' }}</span>
+            <span><i class="bi bi-hash"></i> Qty: {{ entry.quantity }}</span>
+          </div>
+        </div>
+        <span class="badge-status badge-submitted">Submitted</span>
+      </div>
+      {% if entry.remarks %}
+      <div class="entry-remarks">{{ entry.remarks }}</div>
+      {% endif %}
+      <div class="entry-meta mb-2">
+        <span><i class="bi bi-calendar3"></i> {{ entry.created_at.strftime('%d %b %Y, %I:%M %p') if entry.created_at else '—' }}</span>
+      </div>
+      <div class="entry-actions">
+        <form method="POST" action="{{ url_for('ulb.approve_entry', id=entry.id) }}" class="d-inline">
+          <button type="submit" class="btn btn-sm btn-rmmv btn-rmmv-success">
+            <i class="bi bi-check-lg"></i> Approve
+          </button>
+        </form>
+        <button type="button" class="btn btn-sm btn-rmmv btn-rmmv-danger"
+                data-bs-toggle="modal" data-bs-target="#rejectModal{{ entry.id }}">
+          <i class="bi bi-x-lg"></i> Reject
+        </button>
+      </div>
+    </div>
+
+    <!-- Reject Modal -->
+    <div class="modal fade" id="rejectModal{{ entry.id }}" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Reject Entry</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form method="POST" action="{{ url_for('ulb.reject_entry', id=entry.id) }}">
+            <div class="modal-body">
+              <p class="fs-sm text-muted">
+                Rejecting entry by <strong>{{ entry.engineer.name or entry.engineer.username }}</strong>
+                for <strong>{{ entry.project.name }}</strong>.
+              </p>
+              <div class="mb-3">
+                <label class="form-label" for="rejectRemarks{{ entry.id }}">Reason for Rejection</label>
+                <textarea class="form-control" id="rejectRemarks{{ entry.id }}" name="review_remarks"
+                          rows="3" required placeholder="Please explain why this entry is being rejected…"></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-sm btn-rmmv btn-rmmv-outline" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-sm btn-rmmv btn-rmmv-danger">
+                <i class="bi bi-x-lg"></i> Confirm Rejection
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state py-4">
+      <i class="bi bi-check-circle empty-icon text-success"></i>
+      <div class="empty-title">All caught up!</div>
+      <div class="empty-text">No pending entries to review.</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // ---- ULB Map ----
+    var projectsData = {{ projects_json | tojson }};
+    initMap('ulb-map', projectsData);
+
+    // ---- Progress Chart ----
+    var chartLabels    = {{ chart_labels | tojson }};
+    var chartPhysical  = {{ chart_physical | tojson }};
+    var chartFinancial = {{ chart_financial | tojson }};
+    initProgressChart('ulbProgressChart', chartLabels, chartPhysical, chartFinancial);
+  });
+</script>
+{% endblock %}

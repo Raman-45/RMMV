@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Projects — RMMV{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-folder2-open me-2"></i>Projects</h2>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('state.dashboard') }}">Dashboard</a></li>
+      <li class="breadcrumb-item active">Projects</li>
+    </ol>
+  </nav>
+</div>
+
+<div class="card-rmmv mb-4">
+  <div class="card-body-rmmv">
+    <form method="GET" class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label" for="filterULB">ULB</label>
+        <select id="filterULB" name="ulb_id" class="form-select">
+          <option value="">All ULBs</option>
+          {% for ulb in ulbs %}
+          <option value="{{ ulb.id }}" {% if selected_ulb == ulb.id %}selected{% endif %}>{{ ulb.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="filterStatus">Status</label>
+        <select id="filterStatus" name="status" class="form-select">
+          <option value="">All Statuses</option>
+          <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+          <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Completed</option>
+          <option value="delayed" {% if selected_status == 'delayed' %}selected{% endif %}>Delayed</option>
+          <option value="critical" {% if selected_status == 'critical' %}selected{% endif %}>Critical</option>
+        </select>
+      </div>
+      <div class="col-md-4 text-end">
+        <button type="submit" class="btn btn-rmmv btn-rmmv-primary">Filter</button>
+        <a href="{{ url_for('state.projects') }}" class="btn btn-rmmv btn-rmmv-outline">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card-rmmv">
+  <div class="card-body-rmmv p-0">
+    <div class="table-responsive-rmmv">
+      <table class="table-rmmv mb-0">
+        <thead>
+          <tr>
+            <th>Project</th>
+            <th>ULB</th>
+            <th>Status</th>
+            <th>Physical</th>
+            <th>Financial</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for project in projects %}
+          <tr>
+            <td>{{ project.name }}</td>
+            <td>{{ project.ulb.name if project.ulb else '—' }}</td>
+            <td><span class="badge-status badge-{{ project.status }}">{{ project.status }}</span></td>
+            <td>{{ project.physical_progress or 0 }}%</td>
+            <td>{{ project.financial_progress or 0 }}%</td>
+            <td class="text-end">
+              <a href="{{ url_for('state.project_detail', id=project.id) }}" class="btn btn-sm btn-rmmv btn-rmmv-outline">
+                View
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="text-center py-4">
+              No projects found for the selected criteria.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if pagination and pagination.pages > 1 %}
+<nav>
+  <ul class="pagination-rmmv">
+    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+      <a class="page-link" href="?page={{ pagination.prev_num }}&{{ request.query_string.decode() }}">&laquo; Prev</a>
+    </li>
+    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+      {% if p %}
+      <li class="page-item {% if p == pagination.page %}active{% endif %}">
+        <a class="page-link" href="?page={{ p }}&{{ request.query_string.decode() }}">{{ p }}</a>
+      </li>
+      {% else %}
+      <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+    {% endfor %}
+    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+      <a class="page-link" href="?page={{ pagination.next_num }}&{{ request.query_string.decode() }}">Next &raquo;</a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
+
+{% endblock %}

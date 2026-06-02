@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}State Dashboard — RMMV{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-speedometer2 me-2"></i>State PMU Dashboard</h2>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item active">Dashboard</li>
+    </ol>
+  </nav>
+</div>
+
+<!-- ====================================================================
+     KPI CARDS ROW
+     ==================================================================== -->
+<div class="row g-3 mb-4 kpi-row">
+  <!-- Total Projects -->
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="kpi-card kpi-primary">
+      <i class="bi bi-building-gear kpi-icon"></i>
+      <div class="kpi-value">{{ total_projects }}</div>
+      <div class="kpi-label">Total Projects</div>
+    </div>
+  </div>
+
+  <!-- Total ULBs -->
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="kpi-card kpi-navy">
+      <i class="bi bi-buildings kpi-icon"></i>
+      <div class="kpi-value">{{ total_ulbs }}</div>
+      <div class="kpi-label">Total ULBs</div>
+    </div>
+  </div>
+
+  <!-- Avg Physical Progress -->
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="kpi-card kpi-success">
+      <i class="bi bi-graph-up-arrow kpi-icon"></i>
+      <div class="kpi-value">{{ "%.1f"|format(avg_physical) }}%</div>
+      <div class="kpi-label">Avg Physical %</div>
+    </div>
+  </div>
+
+  <!-- Avg Financial Progress -->
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="kpi-card kpi-red">
+      <i class="bi bi-currency-rupee kpi-icon"></i>
+      <div class="kpi-value">{{ "%.1f"|format(avg_financial) }}%</div>
+      <div class="kpi-label">Avg Financial %</div>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="kpi-card kpi-warning">
+      <i class="bi bi-exclamation-triangle kpi-icon"></i>
+      <div class="kpi-value">{{ alerts_count }}</div>
+      <div class="kpi-label">Alerts</div>
+    </div>
+  </div>
+
+  <!-- Delayed Projects -->
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="kpi-card kpi-danger">
+      <i class="bi bi-clock-history kpi-icon"></i>
+      <div class="kpi-value">{{ delayed_count }}</div>
+      <div class="kpi-label">Delayed Projects</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================================
+     GIS MAP
+     ==================================================================== -->
+<div class="card-rmmv mb-4">
+  <div class="card-header-rmmv">
+    <h5><i class="bi bi-geo-alt me-2"></i>Project Locations</h5>
+    <div class="header-actions">
+      <span class="fs-xs text-muted">{{ total_projects }} markers</span>
+    </div>
+  </div>
+  <div class="card-body-rmmv p-0">
+    <div id="state-map" class="map-container" style="height:450px;"></div>
+  </div>
+</div>
+
+<!-- ====================================================================
+     CHARTS ROW
+     ==================================================================== -->
+<div class="row g-4 mb-4">
+  <!-- Progress Comparison -->
+  <div class="col-lg-7">
+    <div class="chart-card">
+      <h5 class="chart-title"><i class="bi bi-bar-chart me-2"></i>Progress Comparison by ULB</h5>
+      <div class="chart-body" style="height:320px;">
+        <canvas id="progressChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Distribution -->
+  <div class="col-lg-5">
+    <div class="chart-card">
+      <h5 class="chart-title"><i class="bi bi-pie-chart me-2"></i>Status Distribution</h5>
+      <div class="chart-body" style="height:320px;">
+        <canvas id="statusDonut"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================================
+     PROJECTS TABLE
+     ==================================================================== -->
+<div class="card-rmmv">
+  <div class="card-header-rmmv">
+    <h5><i class="bi bi-table me-2"></i>All Projects</h5>
+  </div>
+  <div class="card-body-rmmv p-0">
+    <div class="table-responsive-rmmv">
+      <table class="table-rmmv">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Project Name</th>
+            <th>ULB</th>
+            <th>Cost (₹ Cr)</th>
+            <th>Physical %</th>
+            <th>Financial %</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in projects %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td class="fw-500">{{ p.name }}</td>
+            <td>{{ p.ulb.name if p.ulb else '—' }}</td>
+            <td>{{ "%.2f"|format(p.cost or 0) }}</td>
+            <td>
+              <span class="fw-600">{{ "%.1f"|format(p.physical_progress) }}%</span>
+              <div class="progress-mini">
+                <div class="progress-bar
+                  {% if p.physical_progress >= 75 %}bg-success
+                  {% elif p.physical_progress >= 50 %}bg-info
+                  {% elif p.physical_progress >= 25 %}bg-warning
+                  {% else %}bg-danger{% endif %}"
+                  style="width:{{ p.physical_progress }}%"></div>
+              </div>
+            </td>
+            <td>
+              <span class="fw-600">{{ "%.1f"|format(p.financial_progress) }}%</span>
+              <div class="progress-mini">
+                <div class="progress-bar bg-navy" style="width:{{ p.financial_progress }}%"></div>
+              </div>
+            </td>
+            <td>
+              <span class="badge-status badge-{{ p.status }}">{{ p.status }}</span>
+            </td>
+            <td>
+              <a href="{{ url_for('state.project_detail', id=p.id) }}"
+                 class="btn btn-sm btn-rmmv btn-rmmv-outline">
+                <i class="bi bi-eye"></i> View
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8">
+              <div class="empty-state py-4">
+                <i class="bi bi-inbox empty-icon"></i>
+                <div class="empty-title">No projects found</div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // ---- GIS Map ----
+    var projectsData = {{ projects_json | tojson }};
+    initMap('state-map', projectsData);
+
+    // ---- Progress Chart ----
+    var chartLabels    = {{ chart_labels | tojson }};
+    var chartPhysical  = {{ chart_physical | tojson }};
+    var chartFinancial = {{ chart_financial | tojson }};
+    initProgressChart('progressChart', chartLabels, chartPhysical, chartFinancial);
+
+    // ---- Status Donut ----
+    var statusCounts = {{ status_counts | safe }};
+    initStatusDonut('statusDonut', statusCounts);
+  });
+</script>
+{% endblock %}

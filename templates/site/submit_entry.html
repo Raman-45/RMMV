@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Entry — RMMV{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="bi bi-plus-circle me-2"></i>Submit Site Entry</h2>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('site.dashboard') }}">Dashboard</a></li>
+      <li class="breadcrumb-item active">Submit Entry</li>
+    </ol>
+  </nav>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card-rmmv">
+      <div class="card-header-rmmv">
+        <h5><i class="bi bi-clipboard-data me-2"></i>New Site Measurement</h5>
+      </div>
+      <div class="card-body-rmmv">
+        <form method="POST" action="{{ url_for('site.submit_entry') }}" id="entryForm">
+          <!-- Project -->
+          <div class="mb-3">
+            <label class="form-label" for="project_id">
+              <i class="bi bi-folder2 me-1"></i> Project <span class="text-danger">*</span>
+            </label>
+            <select class="form-select" id="project_id" name="project_id" required>
+              <option value="" disabled selected>Select a project…</option>
+              {% for p in projects %}
+              <option value="{{ p.id }}">{{ p.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Activity -->
+          <div class="mb-3">
+            <label class="form-label" for="activity_id">
+              <i class="bi bi-activity me-1"></i> Activity <span class="text-danger">*</span>
+            </label>
+            <select class="form-select" id="activity_id" name="activity_id" required>
+              <option value="" disabled selected>Select an activity…</option>
+              {% for a in activities %}
+              <option value="{{ a.id }}" data-project="{{ a.project_id }}">
+                {{ a.activity_name }} ({{ a.unit }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Quantity -->
+          <div class="mb-3">
+            <label class="form-label" for="quantity">
+              <i class="bi bi-hash me-1"></i> Quantity <span class="text-danger">*</span>
+            </label>
+            <input type="number" class="form-control" id="quantity" name="quantity"
+                   step="0.01" min="0" required placeholder="Enter measured quantity">
+          </div>
+
+          <!-- Remarks -->
+          <div class="mb-4">
+            <label class="form-label" for="remarks">
+              <i class="bi bi-chat-left-text me-1"></i> Remarks
+            </label>
+            <textarea class="form-control" id="remarks" name="remarks" rows="3"
+                      placeholder="Optional notes about this measurement…"></textarea>
+          </div>
+
+          <!-- GPS Section -->
+          <div class="mb-4">
+            <label class="form-label">
+              <i class="bi bi-geo-alt me-1"></i> GPS Location
+            </label>
+            <div class="d-flex gap-2 mb-2">
+              <button type="button" class="btn btn-sm btn-rmmv btn-rmmv-secondary" id="captureGPSBtn">
+                <i class="bi bi-crosshair"></i> Capture Location
+              </button>
+              <span class="fs-xs text-muted align-self-center" id="gpsStatus">Not captured</span>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">Lat</span>
+                  <input type="text" class="form-control" id="id_latitude" name="latitude" readonly
+                         placeholder="—">
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">Lng</span>
+                  <input type="text" class="form-control" id="id_longitude" name="longitude" readonly
+                         placeholder="—">
+                </div>
+              </div>
+            </div>
+            <div id="entryMiniMap" class="mini-map-container"></div>
+          </div>
+
+          <!-- Submit -->
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-rmmv btn-rmmv-primary">
+              <i class="bi bi-send"></i> Submit Entry
+            </button>
+            <a href="{{ url_for('site.dashboard') }}" class="btn btn-rmmv btn-rmmv-outline">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // ---- Mini Map ----
+    var miniMapRef = initMiniMap('entryMiniMap');
+
+    // ---- Capture GPS ----
+    var captureBtn = document.getElementById('captureGPSBtn');
+    var gpsStatus  = document.getElementById('gpsStatus');
+
+    captureBtn.addEventListener('click', function () {
+      gpsStatus.textContent = 'Capturing…';
+      captureGPS('id_latitude', 'id_longitude', miniMapRef);
+      setTimeout(function () {
+        var lat = document.getElementById('id_latitude').value;
+        if (lat) {
+          gpsStatus.innerHTML = '<i class="bi bi-check-circle text-success"></i> Location captured';
+        }
+      }, 3000);
+    });
+
+    // ---- Filter activities by project ----
+    var projectSelect  = document.getElementById('project_id');
+    var activitySelect = document.getElementById('activity_id');
+    var allOptions     = Array.from(activitySelect.options);
+
+    projectSelect.addEventListener('change', function () {
+      var pid = this.value;
+      activitySelect.innerHTML = '<option value="" disabled selected>Select an activity…</option>';
+      allOptions.forEach(function (opt) {
+        if (opt.dataset.project === pid) {
+          activitySelect.appendChild(opt.cloneNode(true));
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

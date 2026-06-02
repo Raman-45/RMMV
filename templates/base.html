@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="RMMV — Remote Monitoring, Measurement & Verification Dashboard">
+  <title>{% block title %}RMMV Dashboard{% endblock %}</title>
+
+  <!-- Google Fonts — Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5.3 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+  <!-- Leaflet CSS -->
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+
+  <!-- RMMV Custom CSS -->
+  <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+  {% if current_user.is_authenticated %}
+  <!-- ====================================================================
+       TOP NAVBAR
+       ==================================================================== -->
+  <nav class="rmmv-navbar">
+    <div class="d-flex align-items-center">
+      <!-- Hamburger toggle (visible on mobile only) -->
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+
+      <!-- Brand -->
+      <a href="
+        {% if current_user.role == 'state' %}{{ url_for('state.dashboard') }}
+        {% elif current_user.role == 'ulb' %}{{ url_for('ulb.dashboard') }}
+        {% else %}{{ url_for('site.dashboard') }}{% endif %}
+      " class="navbar-brand">
+        <span class="brand-icon">R</span>
+        <span>RMMV<span class="brand-sub">Monitoring Centre</span></span>
+      </a>
+    </div>
+
+    <!-- User Dropdown -->
+    <div class="navbar-user dropdown">
+      <span class="role-badge role-{{ current_user.role }}">{{ current_user.role | upper }}</span>
+      <a href="#" class="dropdown-toggle text-white text-decoration-none" id="userDropdown"
+         data-bs-toggle="dropdown" aria-expanded="false">
+        <span class="user-name">{{ current_user.name or current_user.username }}</span>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+        <li>
+          <span class="dropdown-item-text fs-xs text-muted">
+            Signed in as <strong>{{ current_user.username }}</strong>
+          </span>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <a class="dropdown-item" href="
+            {% if current_user.role == 'state' %}{{ url_for('state.dashboard') }}
+            {% elif current_user.role == 'ulb' %}{{ url_for('ulb.dashboard') }}
+            {% else %}{{ url_for('site.dashboard') }}{% endif %}
+          ">
+            <i class="bi bi-speedometer2"></i> Dashboard
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
+            <i class="bi bi-box-arrow-right"></i> Logout
+          </a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Sidebar overlay backdrop (mobile) -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- ====================================================================
+       SIDEBAR
+       ==================================================================== -->
+  <aside class="rmmv-sidebar" id="sidebar">
+    <span class="nav-section-label">Navigation</span>
+
+    <ul class="sidebar-nav">
+      {# ---- STATE (PMU Admin) ---- #}
+      {% if current_user.role == 'state' %}
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'state.dashboard' %}active{% endif %}"
+           href="{{ url_for('state.dashboard') }}">
+          <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint in ['state.projects', 'state.project_detail'] %}active{% endif %}"
+           href="{{ url_for('state.projects') }}">
+          <i class="bi bi-building-gear"></i> All Projects
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'state.audit_logs' %}active{% endif %}"
+           href="{{ url_for('state.audit_logs') }}">
+          <i class="bi bi-clock-history"></i> Audit Logs
+        </a>
+      </li>
+
+      {# ---- ULB Officer ---- #}
+      {% elif current_user.role == 'ulb' %}
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'ulb.dashboard' %}active{% endif %}"
+           href="{{ url_for('ulb.dashboard') }}">
+          <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'ulb.project_detail' %}active{% endif %}"
+           href="{{ url_for('ulb.dashboard') }}">
+          <i class="bi bi-folder2-open"></i> My Projects
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'ulb.review_entries' %}active{% endif %}"
+           href="{{ url_for('ulb.review_entries') }}">
+          <i class="bi bi-check2-square"></i> Review Entries
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">
+          <i class="bi bi-bar-chart-line"></i> Reports
+        </a>
+      </li>
+
+      {# ---- SITE Engineer ---- #}
+      {% elif current_user.role == 'site' %}
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'site.dashboard' %}active{% endif %}"
+           href="{{ url_for('site.dashboard') }}">
+          <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'site.submit_entry' %}active{% endif %}"
+           href="{{ url_for('site.submit_entry') }}">
+          <i class="bi bi-plus-circle"></i> Submit Entry
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'site.upload_media' %}active{% endif %}"
+           href="{{ url_for('site.upload_media') }}">
+          <i class="bi bi-camera"></i> Upload Media
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'site.my_entries' %}active{% endif %}"
+           href="{{ url_for('site.my_entries') }}">
+          <i class="bi bi-journal-text"></i> My Entries
+        </a>
+      </li>
+      {% endif %}
+    </ul>
+
+    <div class="sidebar-footer">
+      <small>&copy; 2026 RMMV &middot; Govt of MP</small>
+    </div>
+  </aside>
+
+  <!-- ====================================================================
+       FLASH MESSAGES
+       ==================================================================== -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-container">
+    {% for category, message in messages %}
+    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+      {% if category == 'success' %}<i class="bi bi-check-circle-fill me-1"></i>
+      {% elif category == 'error' or category == 'danger' %}<i class="bi bi-exclamation-triangle-fill me-1"></i>
+      {% elif category == 'warning' %}<i class="bi bi-exclamation-circle-fill me-1"></i>
+      {% else %}<i class="bi bi-info-circle-fill me-1"></i>{% endif %}
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <!-- ====================================================================
+       MAIN CONTENT
+       ==================================================================== -->
+  <main class="rmmv-main animate-fade-in">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% endif %}
+
+  <!-- ====================================================================
+       SCRIPTS
+       ==================================================================== -->
+  <!-- Bootstrap 5.3 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+  <!-- RMMV Scripts -->
+  <script src="{{ url_for('static', filename='js/map.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+
+  <!-- Sidebar Toggle Logic -->
+  <script>
+    (function () {
+      'use strict';
+      var toggle  = document.getElementById('sidebarToggle');
+      var sidebar = document.getElementById('sidebar');
+      var overlay = document.getElementById('sidebarOverlay');
+
+      if (toggle && sidebar) {
+        toggle.addEventListener('click', function () {
+          sidebar.classList.toggle('show');
+          if (overlay) overlay.classList.toggle('show');
+        });
+      }
+
+      if (overlay) {
+        overlay.addEventListener('click', function () {
+          sidebar.classList.remove('show');
+          overlay.classList.remove('show');
+        });
+      }
+
+      // Auto-dismiss flash messages after 5 seconds
+      setTimeout(function () {
+        document.querySelectorAll('.flash-container .alert').forEach(function (el) {
+          var bsAlert = bootstrap.Alert.getOrCreateInstance(el);
+          bsAlert.close();
+        });
+      }, 5000);
+    })();
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>
