@@ -26,7 +26,7 @@ function initMap(elementId, projects, options) {
   'use strict';
 
   var defaults = {
-    center: [23.2599, 77.4126],   // Madhya Pradesh centre
+    center: [11.1271, 78.6569],   // Tamil Nadu centre
     zoom: 7,
     tileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     tileAttribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -121,8 +121,8 @@ function initMap(elementId, projects, options) {
 function initMiniMap(elementId, lat, lng, latInputId, lngInputId) {
   'use strict';
 
-  lat = lat || 23.2599;
-  lng = lng || 77.4126;
+  lat = lat || 11.1271;
+  lng = lng || 78.6569;
   latInputId = latInputId || 'id_latitude';
   lngInputId = lngInputId || 'id_longitude';
 

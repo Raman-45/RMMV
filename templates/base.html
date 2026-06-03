@@ -168,7 +168,7 @@
     </ul>
 
     <div class="sidebar-footer">
-      <small>&copy; 2026 RMMV &middot; Govt of MP</small>
+      <small>&copy; 2026 RMMV &middot; Govt of TN</small>
     </div>
   </aside>
 
@@ -196,9 +196,12 @@
        MAIN CONTENT
        ==================================================================== -->
   <main class="rmmv-main animate-fade-in">
-    {% block content %}{% endblock %}
-  </main>
+  {% endif %}
 
+    {% block content %}{% endblock %}
+
+  {% if current_user.is_authenticated %}
+  </main>
   {% endif %}
 
   <!-- ====================================================================

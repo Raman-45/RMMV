@@ -1,7 +1,7 @@
 """
 RMMV Dashboard — Database Seed Data
 =====================================
-Populates the database with realistic demo data for Madhya Pradesh
+Populates the database with realistic demo data for Tamil Nadu
 water supply infrastructure projects. Idempotent — only seeds when
 the database is empty.
 """
@@ -30,22 +30,22 @@ def seed_database(app_db):
     # 1. Urban Local Bodies
     # ------------------------------------------------------------------
     ulb_bhopal = ULB(
-        name='Bhopal Municipal Corporation',
-        district='Bhopal',
-        state='Madhya Pradesh',
-        code='BMC-MP',
+        name='Chennai Municipal Corporation',
+        district='Chennai',
+        state='Tamil Nadu',
+        code='GCC-TN',
     )
     ulb_indore = ULB(
-        name='Indore Municipal Corporation',
-        district='Indore',
-        state='Madhya Pradesh',
-        code='IMC-MP',
+        name='Coimbatore Municipal Corporation',
+        district='Coimbatore',
+        state='Tamil Nadu',
+        code='CMC-TN',
     )
     ulb_jabalpur = ULB(
-        name='Jabalpur Municipal Corporation',
-        district='Jabalpur',
-        state='Madhya Pradesh',
-        code='JMC-MP',
+        name='Madurai Municipal Corporation',
+        district='Madurai',
+        state='Tamil Nadu',
+        code='MMC-TN',
     )
     db.session.add_all([ulb_bhopal, ulb_indore, ulb_jabalpur])
     db.session.flush()  # Assign IDs before FK references
@@ -65,7 +65,7 @@ def seed_database(app_db):
     ulb_officer = User(
         username='ulb_officer',
         name='Priya Sharma (ULB Officer)',
-        email='priya@bmc.gov.in',
+        email='priya@chennaicorporation.gov.in',
         role='ulb',
         ulb_id=ulb_bhopal.id,
     )
@@ -74,7 +74,7 @@ def seed_database(app_db):
     site_eng = User(
         username='site_eng',
         name='Amit Verma (Site Engineer)',
-        email='amit@bmc.gov.in',
+        email='amit@chennaicorporation.gov.in',
         role='site',
         ulb_id=ulb_bhopal.id,
     )
@@ -87,89 +87,89 @@ def seed_database(app_db):
     # 3. Projects (2 per ULB = 6 total)
     # ------------------------------------------------------------------
     projects_data = [
-        # --- Bhopal ---
+        # --- Chennai ---
         dict(
-            name='Bhopal 24×7 Water Supply — Zone A Pipeline',
+            name='Chennai 24×7 Water Supply — Zone A Pipeline',
             ulb_id=ulb_bhopal.id,
-            description='Installation of 45 km DI pipeline for 24×7 water supply in Zone A covering Kolar and Misrod areas.',
+            description='Installation of 45 km DI pipeline for 24×7 water supply in Zone A covering Kolar and Velachery areas.',
             cost=32.5,
             physical_progress=62.0,
             financial_progress=55.0,
             status='active',
-            latitude=23.2599,
-            longitude=77.4126,
+            latitude=13.0827,
+            longitude=80.2707,
             start_date=date(2024, 4, 1),
             target_date=date(2026, 3, 31),
             contractor='L&T Water & Effluent Treatment Ltd.',
         ),
         dict(
-            name='Bhopal Kolar WTP Upgradation (80 MLD)',
+            name='Chennai Chembarambakkam WTP Upgradation (80 MLD)',
             ulb_id=ulb_bhopal.id,
             description='Upgradation of existing Kolar Water Treatment Plant from 40 MLD to 80 MLD capacity.',
             cost=48.0,
             physical_progress=35.0,
             financial_progress=28.0,
             status='delayed',
-            latitude=23.1740,
-            longitude=77.4520,
+            latitude=13.0120,
+            longitude=80.2340,
             start_date=date(2024, 1, 15),
             target_date=date(2025, 12, 31),
             contractor='SPML Infra Ltd.',
         ),
-        # --- Indore ---
+        # --- Coimbatore ---
         dict(
-            name='Indore Smart Water Metering — Phase II',
+            name='Coimbatore Smart Water Metering — Phase II',
             ulb_id=ulb_indore.id,
             description='Installation of 1,20,000 smart water meters with IoT-based AMI system across all 85 wards.',
             cost=18.75,
             physical_progress=78.0,
             financial_progress=72.0,
             status='active',
-            latitude=22.7196,
-            longitude=75.8577,
+            latitude=11.0168,
+            longitude=76.9558,
             start_date=date(2023, 10, 1),
             target_date=date(2025, 9, 30),
             contractor='Itron India Pvt. Ltd.',
         ),
         dict(
-            name='Indore Yeshwant Sagar Intake Rehabilitation',
+            name='Coimbatore Siruvani Intake Rehabilitation',
             ulb_id=ulb_indore.id,
-            description='Rehabilitation and capacity augmentation of Yeshwant Sagar raw water intake structure and rising main.',
+            description='Rehabilitation and capacity augmentation of Siruvani raw water intake structure and rising main.',
             cost=12.4,
             physical_progress=92.0,
             financial_progress=88.0,
             status='completed',
-            latitude=22.6500,
-            longitude=75.7700,
+            latitude=10.9800,
+            longitude=76.9200,
             start_date=date(2023, 4, 1),
             target_date=date(2025, 3, 31),
             contractor='VA Tech Wabag Ltd.',
         ),
-        # --- Jabalpur ---
+        # --- Madurai ---
         dict(
-            name='Jabalpur Narmada Bulk Water Transmission',
+            name='Madurai Vaigai Bulk Water Transmission',
             ulb_id=ulb_jabalpur.id,
-            description='Construction of 28 km bulk transmission main from Narmada River to Ranital WTP with 3 booster stations.',
+            description='Construction of 28 km bulk transmission main from Vaigai River to Arasaradi WTP with 3 booster stations.',
             cost=42.0,
             physical_progress=18.0,
             financial_progress=12.0,
             status='critical',
-            latitude=23.1815,
-            longitude=79.9864,
+            latitude=9.9252,
+            longitude=78.1198,
             start_date=date(2024, 7, 1),
             target_date=date(2027, 6, 30),
             contractor='Megha Engineering & Infrastructures Ltd.',
         ),
         dict(
-            name='Jabalpur Ward-Level Distribution Network — South Zone',
+            name='Madurai Ward-Level Distribution Network — South Zone',
             ulb_id=ulb_jabalpur.id,
             description='Replacement of aged CI distribution network with HDPE pipes in 12 southern wards.',
             cost=8.6,
             physical_progress=45.0,
             financial_progress=40.0,
             status='active',
-            latitude=23.1550,
-            longitude=79.9400,
+            latitude=9.890,
+            longitude=78.0800,
             start_date=date(2024, 6, 15),
             target_date=date(2026, 6, 14),
             contractor='Tata Projects Ltd.',
@@ -198,12 +198,12 @@ def seed_database(app_db):
 
     # Realistic target quantities per project (indexed by project order)
     qty_sets = [
-        [45000, 45000, 8, 8],       # Bhopal Pipeline
-        [5000, 3000, 4, 4],         # Bhopal WTP
-        [12000, 120000, 200, 200],  # Indore Metering
-        [3500, 3500, 2, 2],         # Indore Intake
-        [28000, 28000, 3, 3],       # Jabalpur Transmission
-        [18000, 18000, 12, 12],     # Jabalpur Distribution
+        [45000, 45000, 8, 8],       # Chennai Pipeline
+        [5000, 3000, 4, 4],         # Chennai WTP
+        [12000, 120000, 200, 200],  # Coimbatore Metering
+        [3500, 3500, 2, 2],         # Coimbatore Intake
+        [28000, 28000, 3, 3],       # Madurai Transmission
+        [18000, 18000, 12, 12],     # Madurai Distribution
     ]
 
     all_activities = []
@@ -232,7 +232,7 @@ def seed_database(app_db):
     # ------------------------------------------------------------------
     # 5. Sample Site Entries
     # ------------------------------------------------------------------
-    # Create entries for the first project's activities (Bhopal Pipeline)
+    # Create entries for the first project's activities (Chennai Pipeline)
     bhopal_acts = all_activities[0:4]  # first 4 activities belong to project 1
 
     entry_specs = [
@@ -240,7 +240,7 @@ def seed_database(app_db):
         (0, 250.0, 'approved', 'Excavation completed in Sector 12, soil condition stable.'),
         (0, 180.0, 'approved', 'Trenching through rocky terrain near Kolar Road.'),
         (1, 320.0, 'submitted', 'DI K9 pipes laid from Ch. 12+500 to Ch. 15+700.'),
-        (1, 150.0, 'submitted', 'Pipe jointing work at road crossing near Misrod.'),
+        (1, 150.0, 'submitted', 'Pipe jointing work at road crossing near Velachery.'),
         (2, 1.0, 'draft', 'ESR foundation work started — Ward 45.'),
         (3, 0.5, 'draft', 'Pressure testing of pipeline segment A1–A5 in progress.'),
         (0, 200.0, 'rejected', 'Excavation measurement disputed — re-survey required.'),
