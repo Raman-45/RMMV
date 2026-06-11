@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if edit_mode %}Edit Project: {{ project.name }}{% else %}Create New Project{% endif %} — RMMV Dashboard
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <h2>
+      {% if edit_mode %}
+      <i class="bi bi-pencil-square me-2"></i>Edit Project
+      {% else %}
+      <i class="bi bi-plus-circle me-2"></i>Create New Project
+      {% endif %}
+    </h2>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('state.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('state.projects') }}">Projects</a></li>
+        <li class="breadcrumb-item active">{% if edit_mode %}Edit{% else %}Create{% endif %}</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="card-rmmv">
+      <div class="card-body-rmmv p-4">
+        
+        <form method="POST" action="{% if edit_mode %}{{ url_for('state.edit_project', id=project.id) }}{% else %}{{ url_for('state.create_project') }}{% endif %}" enctype="multipart/form-data">
+          
+          <!-- SECTION 1: Basic Information -->
+          <h5 class="mb-3"><i class="bi bi-info-circle me-2 text-primary"></i>1. Basic Information</h5>
+          <div class="row g-3 mb-4">
+            <div class="col-md-12">
+              <label class="form-label fw-500">Project Name <span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control" value="{{ project.name if project else '' }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-500">ULB / Statutory Body <span class="text-danger">*</span></label>
+              <select name="ulb_id" class="form-select" required>
+                <option value="">Select ULB / Statutory Body...</option>
+                {% for ulb in ulbs %}
+                <option value="{{ ulb.id }}" {% if project and project.ulb_id == ulb.id %}selected{% endif %}>{{ ulb.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-500">Funding Agency</label>
+              <select name="funding_agency" class="form-select">
+                <option value="">Select Funding Agency...</option>
+                <option value="World Bank" {% if project and project.funding_agency == 'World Bank' %}selected{% endif %}>World Bank</option>
+                <option value="KfW" {% if project and project.funding_agency == 'KfW' %}selected{% endif %}>KfW</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-500">Project Type</label>
+              <select name="project_type" class="form-select">
+                <option value="water_supply" {% if project and project.project_type == 'water_supply' %}selected{% endif %}>Water Supply</option>
+                <option value="sewerage" {% if project and project.project_type == 'sewerage' %}selected{% endif %}>Sewerage</option>
+                <option value="drainage" {% if project and project.project_type == 'drainage' %}selected{% endif %}>Storm Water Drainage</option>
+                <option value="solid_waste" {% if project and project.project_type == 'solid_waste' %}selected{% endif %}>Solid Waste Management</option>
+                <option value="other" {% if project and project.project_type == 'other' %}selected{% endif %}>Other Infrastructure</option>
+              </select>
+            </div>
+            <div class="col-md-12">
+              <label class="form-label fw-500">Description</label>
+              <textarea name="description" class="form-control" rows="3">{{ project.description if project else '' }}</textarea>
+            </div>
+          </div>
+          
+          <hr class="my-4">
+          
+          <!-- SECTION 2: Contract Details -->
+          <h5 class="mb-3"><i class="bi bi-file-earmark-text me-2 text-primary"></i>2. Contract Details</h5>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label fw-500">Contractor Name</label>
+              <input type="text" name="contractor" class="form-control" value="{{ project.contractor if project else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-500">Project Cost (₹ Crores)</label>
+              <div class="input-group">
+                <span class="input-group-text">₹</span>
+                <input type="number" name="cost" class="form-control" step="0.01" min="0" value="{{ project.cost if project else '0.00' }}">
+                <span class="input-group-text">Cr</span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-500">Start Date</label>
+              <input type="date" name="start_date" class="form-control" value="{{ project.start_date.strftime('%Y-%m-%d') if project and project.start_date else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-500">Target Completion Date</label>
+              <input type="date" name="target_date" class="form-control" value="{{ project.target_date.strftime('%Y-%m-%d') if project and project.target_date else '' }}">
+            </div>
+          </div>
+          
+          <hr class="my-4">
+          
+          <!-- SECTION 3: Location -->
+          <h5 class="mb-3"><i class="bi bi-geo-alt me-2 text-primary"></i>3. Central Coordinates</h5>
+          <div class="row g-3 mb-4">
+            <div class="col-md-5">
+              <label class="form-label fw-500">Latitude</label>
+              <input type="number" name="latitude" id="id_latitude" class="form-control" step="0.000001" value="{{ project.latitude if project else '' }}">
+              
+              <label class="form-label fw-500 mt-3">Longitude</label>
+              <input type="number" name="longitude" id="id_longitude" class="form-control" step="0.000001" value="{{ project.longitude if project else '' }}">
+              
+              <button type="button" class="btn btn-outline-primary mt-3 w-100" id="captureGpsBtn">
+                <i class="bi bi-crosshair me-1"></i>Get Current Location
+              </button>
+              <div class="form-text mt-2">These coordinates determine the center point of the project on the state map.</div>
+            </div>
+            <div class="col-md-7">
+              <div id="locationMap" style="height: 250px; border-radius: 8px; border: 1px solid #ced4da;"></div>
+            </div>
+          </div>
+          
+          <hr class="my-4">
+          
+          <!-- SECTION 4: GIS Boundary -->
+          <h5 class="mb-3"><i class="bi bi-bounding-box-circles me-2 text-primary"></i>4. Project Boundary (GIS)</h5>
+          <div class="row g-3 mb-4">
+            <div class="col-md-12">
+              <div class="file-drop-area border rounded p-4 text-center bg-light">
+                <i class="bi bi-cloud-arrow-up display-4 text-muted mb-2"></i>
+                <br>
+                <label class="form-label fw-500">Upload GeoJSON / JSON file</label>
+                <input type="file" name="boundary_file" class="form-control mx-auto mt-2" accept=".geojson,.json" style="max-width:400px;">
+                <div class="form-text mt-2">
+                  Upload a GeoJSON file defining the project's geographic boundary (Polygon or MultiPolygon).
+                  {% if edit_mode %}Uploading a new file will overwrite the existing boundary.{% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- SECTION 5: Activities (Only in create mode for simplicity) -->
+          {% if not edit_mode %}
+          <hr class="my-4">
+          <h5 class="mb-3 d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-list-check me-2 text-primary"></i>5. Project Activities</span>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="addActivityBtn">
+              <i class="bi bi-plus-circle me-1"></i>Add Activity Row
+            </button>
+          </h5>
+          <div class="form-text mb-3">Define the measurable activities for this project. The sum of weightages should equal 1.0.</div>
+          
+          <div class="table-responsive">
+            <table class="table table-bordered align-middle" id="activitiesTable">
+              <thead class="table-light">
+                <tr>
+                  <th width="45%">Activity Name</th>
+                  <th width="15%">Unit</th>
+                  <th width="20%">Target Quantity</th>
+                  <th width="15%">Weightage (0-1)</th>
+                  <th width="5%"></th>
+                </tr>
+              </thead>
+              <tbody id="activitiesBody">
+                <!-- Row 1 -->
+                <tr>
+                  <td><input type="text" name="activity_name[]" class="form-control form-control-sm" placeholder="e.g. Pipeline Laying" required></td>
+                  <td><input type="text" name="activity_unit[]" class="form-control form-control-sm" placeholder="e.g. RMT"></td>
+                  <td><input type="number" name="activity_target[]" class="form-control form-control-sm" step="0.01" min="0"></td>
+                  <td><input type="number" name="activity_weightage[]" class="form-control form-control-sm weightage-input" step="0.01" min="0" max="1" placeholder="e.g. 0.5" required></td>
+                  <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-row" disabled><i class="bi bi-trash"></i></button>
+                  </td>
+                </tr>
+                <!-- Row 2 -->
+                <tr>
+                  <td><input type="text" name="activity_name[]" class="form-control form-control-sm" placeholder="e.g. OHT Construction" required></td>
+                  <td><input type="text" name="activity_unit[]" class="form-control form-control-sm" placeholder="e.g. Nos"></td>
+                  <td><input type="number" name="activity_target[]" class="form-control form-control-sm" step="0.01" min="0"></td>
+                  <td><input type="number" name="activity_weightage[]" class="form-control form-control-sm weightage-input" step="0.01" min="0" max="1" placeholder="e.g. 0.5" required></td>
+                  <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="bi bi-trash"></i></button>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3" class="text-end fw-600">Total Weightage:</td>
+                  <td class="fw-700" id="totalWeightage">0.00</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          {% endif %}
+          
+          <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+            <a href="{% if edit_mode %}{{ url_for('state.project_detail', id=project.id) }}{% else %}{{ url_for('state.projects') }}{% endif %}" class="btn btn-outline-secondary px-4">Cancel</a>
+            <button type="submit" class="btn btn-rmmv text-white px-4">
+              {% if edit_mode %}<i class="bi bi-save me-2"></i>Save Changes{% else %}<i class="bi bi-plus-lg me-2"></i>Create Project{% endif %}
+            </button>
+          </div>
+          
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  'use strict';
+  
+  // Initialize Mini Map
+  var latInput = document.getElementById('id_latitude');
+  var lngInput = document.getElementById('id_longitude');
+  
+  // Default to TN center if empty
+  var initialLat = parseFloat(latInput.value);
+  var initialLng = parseFloat(lngInput.value);
+  if (isNaN(initialLat) || isNaN(initialLng)) {
+    initialLat = 11.1271;
+    initialLng = 78.6569;
+  }
+  
+  var miniMapRef = null;
+  if (typeof initMiniMap === 'function') {
+    miniMapRef = initMiniMap('locationMap', initialLat, initialLng, 'id_latitude', 'id_longitude');
+  }
+  
+  // Capture GPS
+  var gpsBtn = document.getElementById('captureGpsBtn');
+  if (gpsBtn && typeof captureGPS === 'function') {
+    gpsBtn.addEventListener('click', function() {
+      captureGPS('id_latitude', 'id_longitude', miniMapRef);
+    });
+  }
+
+  // Activity Dynamic Rows
+  var addBtn = document.getElementById('addActivityBtn');
+  var tbody = document.getElementById('activitiesBody');
+  var totalEl = document.getElementById('totalWeightage');
+  
+  if (addBtn && tbody) {
+    
+    function calcTotalWeightage() {
+      var inputs = tbody.querySelectorAll('.weightage-input');
+      var total = 0;
+      inputs.forEach(function(inp) {
+        var val = parseFloat(inp.value) || 0;
+        total += val;
+      });
+      totalEl.textContent = total.toFixed(2);
+      if (Math.abs(total - 1.0) > 0.001) {
+        totalEl.classList.add('text-danger');
+        totalEl.classList.remove('text-success');
+      } else {
+        totalEl.classList.remove('text-danger');
+        totalEl.classList.add('text-success');
+      }
+    }
+    
+    function attachEvents(row) {
+      var removeBtn = row.querySelector('.remove-row');
+      if (removeBtn) {
+        removeBtn.addEventListener('click', function() {
+          if (tbody.children.length > 1) {
+            row.remove();
+            calcTotalWeightage();
+            // Disable remove button if only 1 row left
+            if (tbody.children.length === 1) {
+              tbody.querySelector('.remove-row').disabled = true;
+            }
+          }
+        });
+      }
+      
+      var weightInput = row.querySelector('.weightage-input');
+      if (weightInput) {
+        weightInput.addEventListener('input', calcTotalWeightage);
+      }
+    }
+    
+    // Attach events to initial rows
+    Array.from(tbody.children).forEach(attachEvents);
+    calcTotalWeightage();
+    
+    // Add new row
+    addBtn.addEventListener('click', function() {
+      var newRow = document.createElement('tr');
+      newRow.innerHTML = `
+        <td><input type="text" name="activity_name[]" class="form-control form-control-sm" placeholder="e.g. New Activity" required></td>
+        <td><input type="text" name="activity_unit[]" class="form-control form-control-sm" placeholder=""></td>
+        <td><input type="number" name="activity_target[]" class="form-control form-control-sm" step="0.01" min="0"></td>
+        <td><input type="number" name="activity_weightage[]" class="form-control form-control-sm weightage-input" step="0.01" min="0" max="1" placeholder="0.0" required></td>
+        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="bi bi-trash"></i></button></td>
+      `;
+      tbody.appendChild(newRow);
+      attachEvents(newRow);
+      
+      // Enable all remove buttons
+      var allRemoves = tbody.querySelectorAll('.remove-row');
+      allRemoves.forEach(function(btn) { btn.disabled = false; });
+    });
+  }
+});
+</script>
+{% endblock %}

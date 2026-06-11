@@ -1,119 +1,85 @@
 {% extends "base.html" %}
 
-{% block title %}{{ project.name }} — RMMV{% endblock %}
+{% block title %}{{ project.name }} — RMMV Digital Twin{% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <h2><i class="bi bi-building-gear me-2"></i>{{ project.name }}</h2>
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item">
-        {% if current_user.role == 'state' %}
-        <a href="{{ url_for('state.dashboard') }}">Dashboard</a>
-        {% elif current_user.role == 'ulb' %}
-        <a href="{{ url_for('ulb.dashboard') }}">Dashboard</a>
-        {% else %}
-        <a href="{{ url_for('site.dashboard') }}">Dashboard</a>
-        {% endif %}
-      </li>
-      <li class="breadcrumb-item">
-        {% if current_user.role == 'state' %}
-        <a href="{{ url_for('state.projects') }}">Projects</a>
-        {% else %}
-        Projects
-        {% endif %}
-      </li>
-      <li class="breadcrumb-item active">{{ project.name }}</li>
-    </ol>
-  </nav>
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+      <h2><i class="bi bi-building-gear me-2"></i>{{ project.name }}</h2>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">
+            {% if current_user.role == 'state' %}
+            <a href="{{ url_for('state.dashboard') }}">Dashboard</a>
+            {% elif current_user.role == 'ulb' %}
+            <a href="{{ url_for('ulb.dashboard') }}">Dashboard</a>
+            {% else %}
+            <a href="{{ url_for('site.dashboard') }}">Dashboard</a>
+            {% endif %}
+          </li>
+          <li class="breadcrumb-item">
+            {% if current_user.role == 'state' %}
+            <a href="{{ url_for('state.projects') }}">Projects</a>
+            {% else %}
+            Projects
+            {% endif %}
+          </li>
+          <li class="breadcrumb-item active">{{ project.name }}</li>
+        </ol>
+      </nav>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+      <span class="badge-status badge-{{ project.status }}">{{ project.status }}</span>
+      {% if current_user.role == 'state' %}
+      <a href="{{ url_for('state.edit_project', id=project.id) }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-pencil-square me-1"></i>Edit
+      </a>
+      {% endif %}
+    </div>
+  </div>
 </div>
 
 <!-- ====================================================================
-     PROJECT HEADER CARD
+     PROJECT INFO BAR (Compact)
      ==================================================================== -->
-<div class="card-rmmv mb-4">
-  <div class="card-body-rmmv">
-    <div class="row align-items-center">
-      <div class="col-lg-8">
-        <div class="d-flex align-items-center gap-3 mb-3">
-          <h4 class="fw-700 text-navy mb-0">{{ project.name }}</h4>
-          <span class="badge-status badge-{{ project.status }}">{{ project.status }}</span>
-        </div>
-        <div class="row g-3 fs-sm">
-          <div class="col-md-6">
-            <div class="text-muted mb-1"><i class="bi bi-building me-1"></i> ULB</div>
-            <div class="fw-500">{{ project.ulb.name if project.ulb else '—' }}</div>
-          </div>
-          <div class="col-md-6">
-            <div class="text-muted mb-1"><i class="bi bi-person-badge me-1"></i> Contractor</div>
-            <div class="fw-500">{{ project.contractor or '—' }}</div>
-          </div>
-          <div class="col-md-6">
-            <div class="text-muted mb-1"><i class="bi bi-calendar-event me-1"></i> Start Date</div>
-            <div class="fw-500">{{ project.start_date.strftime('%d %b %Y') if project.start_date else '—' }}</div>
-          </div>
-          <div class="col-md-6">
-            <div class="text-muted mb-1"><i class="bi bi-calendar-check me-1"></i> Target Date</div>
-            <div class="fw-500">{{ project.target_date.strftime('%d %b %Y') if project.target_date else '—' }}</div>
-          </div>
-          <div class="col-md-6">
-            <div class="text-muted mb-1"><i class="bi bi-currency-rupee me-1"></i> Project Cost</div>
-            <div class="fw-500">₹ {{ "%.2f"|format(project.cost or 0) }} Cr</div>
-          </div>
-          <div class="col-md-6">
-            <div class="text-muted mb-1"><i class="bi bi-geo-alt me-1"></i> Location</div>
-            <div class="fw-500">
-              {% if project.latitude is not none and project.longitude is not none %}
-                {{ "%.4f"|format(project.latitude) }}, {{ "%.4f"|format(project.longitude) }}
-              {% else %}
-                —
-              {% endif %}
-            </div>
-          </div>
-        </div>
-        {% if project.description %}
-        <div class="mt-3 fs-sm text-muted">
-          <i class="bi bi-info-circle me-1"></i> {{ project.description }}
-        </div>
-        {% endif %}
+<div class="card-rmmv mb-3">
+  <div class="card-body-rmmv py-2">
+    <div class="row g-3 fs-sm align-items-center">
+      <div class="col-auto">
+        <span class="text-muted"><i class="bi bi-bank me-1"></i>Funding Agency:</span>
+        <span class="fw-500">{{ project.funding_agency or '—' }}</span>
       </div>
-
-      <!-- Progress Indicators -->
-      <div class="col-lg-4">
-        <div class="row g-3 text-center mt-3 mt-lg-0">
-          <div class="col-6">
-            {% set phys_progress = project.physical_progress or 0 %}
-            <div class="card-rmmv p-3" style="border-left:4px solid var(--success);">
-              <div class="fs-xs text-muted text-uppercase fw-600 mb-2">Physical Progress</div>
-              <div class="position-relative d-inline-block">
-                <svg width="100" height="100" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="#e9ecef" stroke-width="8"/>
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="var(--success)" stroke-width="8"
-                          stroke-dasharray="{{ (phys_progress / 100) * 263.89 }} 263.89"
-                          stroke-linecap="round" transform="rotate(-90 50 50)"/>
-                </svg>
-                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
-                  <span class="fw-700 fs-5 text-navy">{{ "%.0f"|format(phys_progress) }}%</span>
-                </div>
-              </div>
-            </div>
+      <div class="col-auto">
+        <span class="text-muted"><i class="bi bi-building me-1"></i>ULB / Statutory Body:</span>
+        <span class="fw-500">{{ project.ulb.name if project.ulb else '—' }}</span>
+      </div>
+      <div class="col-auto">
+        <span class="text-muted"><i class="bi bi-tag me-1"></i>Type:</span>
+        <span class="fw-500">{{ (project.project_type or 'water_supply') | replace('_', ' ') | title }}</span>
+      </div>
+      <div class="col-auto">
+        <span class="text-muted"><i class="bi bi-person-badge me-1"></i>Contractor:</span>
+        <span class="fw-500">{{ project.contractor or '—' }}</span>
+      </div>
+      <div class="col-auto">
+        <span class="text-muted"><i class="bi bi-currency-rupee me-1"></i>Cost:</span>
+        <span class="fw-600">₹ {{ "%.2f"|format(project.cost or 0) }} Cr</span>
+      </div>
+      <div class="col-auto">
+        <span class="text-muted"><i class="bi bi-calendar-event me-1"></i></span>
+        <span class="fw-500">{{ project.start_date.strftime('%d %b %Y') if project.start_date else '—' }}
+          → {{ project.target_date.strftime('%d %b %Y') if project.target_date else '—' }}</span>
+      </div>
+      <div class="col-auto ms-auto">
+        <div class="d-flex gap-3">
+          <div class="text-center">
+            <div class="fs-xs text-muted">Physical</div>
+            <div class="fw-700 text-success">{{ "%.0f"|format(project.physical_progress or 0) }}%</div>
           </div>
-          <div class="col-6">
-            {% set fin_progress = project.financial_progress or 0 %}
-            <div class="card-rmmv p-3" style="border-left:4px solid var(--red-accent);">
-              <div class="fs-xs text-muted text-uppercase fw-600 mb-2">Financial Progress</div>
-              <div class="position-relative d-inline-block">
-                <svg width="100" height="100" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="#e9ecef" stroke-width="8"/>
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="var(--red-accent)" stroke-width="8"
-                          stroke-dasharray="{{ (fin_progress / 100) * 263.89 }} 263.89"
-                          stroke-linecap="round" transform="rotate(-90 50 50)"/>
-                </svg>
-                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
-                  <span class="fw-700 fs-5 text-navy">{{ "%.0f"|format(fin_progress) }}%</span>
-                </div>
-              </div>
-            </div>
+          <div class="text-center">
+            <div class="fs-xs text-muted">Financial</div>
+            <div class="fw-700" style="color:var(--red-accent)">{{ "%.0f"|format(project.financial_progress or 0) }}%</div>
           </div>
         </div>
       </div>
@@ -122,59 +88,193 @@
 </div>
 
 <!-- ====================================================================
-     ACTIVITY TABLE & CHART
+     DIGITAL TWIN TABS
      ==================================================================== -->
-<div class="row g-4 mb-4">
-  <!-- Activity Table -->
-  <div class="col-lg-7">
-    <div class="card-rmmv">
+<ul class="nav nav-tabs project-tabs mb-0" id="projectTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if active_tab == 'gis' %}active{% endif %}" id="gis-tab"
+            data-bs-toggle="tab" data-bs-target="#gis-panel" type="button" role="tab">
+      <i class="bi bi-map me-1"></i>GIS View
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if active_tab == 'progress' %}active{% endif %}" id="progress-tab"
+            data-bs-toggle="tab" data-bs-target="#progress-panel" type="button" role="tab">
+      <i class="bi bi-graph-up me-1"></i>Progress
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if active_tab == 'financial' %}active{% endif %}" id="financial-tab"
+            data-bs-toggle="tab" data-bs-target="#financial-panel" type="button" role="tab">
+      <i class="bi bi-currency-rupee me-1"></i>Financial
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if active_tab == 'images' %}active{% endif %}" id="images-tab"
+            data-bs-toggle="tab" data-bs-target="#images-panel" type="button" role="tab">
+      <i class="bi bi-images me-1"></i>Images
+      {% if media_files %}<span class="badge bg-secondary ms-1">{{ media_files|selectattr('file_type', 'equalto', 'image')|list|length }}</span>{% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if active_tab == 'videos' %}active{% endif %}" id="videos-tab"
+            data-bs-toggle="tab" data-bs-target="#videos-panel" type="button" role="tab">
+      <i class="bi bi-camera-video me-1"></i>Videos
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if active_tab == 'documents' %}active{% endif %}" id="documents-tab"
+            data-bs-toggle="tab" data-bs-target="#documents-panel" type="button" role="tab">
+      <i class="bi bi-file-earmark-text me-1"></i>Documents
+      {% if documents %}<span class="badge bg-secondary ms-1">{{ documents|length }}</span>{% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if active_tab == 'audit' %}active{% endif %}" id="audit-tab"
+            data-bs-toggle="tab" data-bs-target="#audit-panel" type="button" role="tab">
+      <i class="bi bi-clock-history me-1"></i>Audit Trail
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content project-tab-content" id="projectTabContent">
+
+  <!-- ================================================================
+       TAB 1: GIS VIEW (Default)
+       ================================================================ -->
+  <div class="tab-pane fade {% if active_tab == 'gis' %}show active{% endif %}" id="gis-panel" role="tabpanel">
+    <div class="gis-container">
+      <div id="projectGISMap" class="project-gis-map"></div>
+      <div class="gis-legend">
+        <div class="legend-title"><i class="bi bi-layers me-1"></i>Legend</div>
+        <div class="legend-item"><span class="legend-color" style="background:#adb5bd"></span> Not Started</div>
+        <div class="legend-item"><span class="legend-color" style="background:#fdcb6e"></span> Excavation</div>
+        <div class="legend-item"><span class="legend-color" style="background:#0984e3"></span> Installation</div>
+        <div class="legend-item"><span class="legend-color" style="background:#6c3483"></span> Testing</div>
+        <div class="legend-item"><span class="legend-color" style="background:#00b894"></span> Completed</div>
+        <hr class="my-1">
+        <div class="legend-item"><span class="legend-color legend-border"></span> Project Boundary</div>
+        <div class="legend-item"><span class="legend-color" style="background:#e17055"></span> <i class="bi bi-camera-fill"></i> Geotagged Image</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       TAB 2: PROGRESS
+       ================================================================ -->
+  <div class="tab-pane fade {% if active_tab == 'progress' %}show active{% endif %}" id="progress-panel" role="tabpanel">
+    <div class="row g-4 mt-1">
+      <!-- Activity Table -->
+      <div class="col-lg-7">
+        <div class="card-rmmv">
+          <div class="card-header-rmmv">
+            <h5><i class="bi bi-list-check me-2"></i>Activities</h5>
+          </div>
+          <div class="card-body-rmmv p-0">
+            <div class="table-responsive-rmmv">
+              <table class="table-rmmv">
+                <thead>
+                  <tr>
+                    <th>Activity</th>
+                    <th>Unit</th>
+                    <th>Target</th>
+                    <th>Achieved</th>
+                    <th>Completion</th>
+                    <th>Progress</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for a in activities %}
+                  {% set target_qty = a.target_qty or 0 %}
+                  {% set achieved_qty = a.achieved_qty or 0 %}
+                  {% set completion = ((achieved_qty / target_qty) * 100) if target_qty > 0 else 0 %}
+                  {% if completion >= 75 %}
+                    {% set progress_class = 'bg-success' %}
+                  {% elif completion >= 50 %}
+                    {% set progress_class = 'bg-info' %}
+                  {% elif completion >= 25 %}
+                    {% set progress_class = 'bg-warning' %}
+                  {% else %}
+                    {% set progress_class = 'bg-danger' %}
+                  {% endif %}
+                  <tr>
+                    <td class="fw-500">{{ a.activity_name }}</td>
+                    <td>{{ a.unit or '—' }}</td>
+                    <td>{{ "%.1f"|format(target_qty) }}</td>
+                    <td>{{ "%.1f"|format(achieved_qty) }}</td>
+                    <td class="fw-600">{{ "%.1f"|format(completion) }}%</td>
+                    <td style="min-width:120px;">
+                      <div class="progress-mini">
+                        <div class="progress-bar {{ progress_class }}" {{ 'style="width:' ~ completion ~ '%;"' | safe }}></div>
+                      </div>
+                    </td>
+                  </tr>
+                  {% else %}
+                  <tr>
+                    <td colspan="6">
+                      <div class="empty-state py-3">
+                        <div class="empty-text">No activities defined for this project.</div>
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Chart -->
+      <div class="col-lg-5">
+        <div class="chart-card">
+          <h5 class="chart-title"><i class="bi bi-bar-chart me-2"></i>Activity Progress</h5>
+          <div class="chart-body" style="height:320px;">
+            <canvas id="activityChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Site Entries Table -->
+    <div class="card-rmmv mt-4">
       <div class="card-header-rmmv">
-        <h5><i class="bi bi-list-check me-2"></i>Activities</h5>
+        <h5><i class="bi bi-clipboard-data me-2"></i>Site Entries</h5>
       </div>
       <div class="card-body-rmmv p-0">
         <div class="table-responsive-rmmv">
           <table class="table-rmmv">
             <thead>
               <tr>
+                <th>Date</th>
+                <th>Engineer</th>
                 <th>Activity</th>
-                <th>Unit</th>
-                <th>Target</th>
-                <th>Achieved</th>
-                <th>Completion</th>
-                <th>Progress</th>
+                <th>Qty</th>
+                <th>Status</th>
+                <th>Remarks</th>
               </tr>
             </thead>
             <tbody>
-              {% for a in activities %}
-              {% set target_qty = a.target_qty or 0 %}
-              {% set achieved_qty = a.achieved_qty or 0 %}
-              {% set completion = ((achieved_qty / target_qty) * 100) if target_qty > 0 else 0 %}
-              {% if completion >= 75 %}
-                {% set progress_class = 'bg-success' %}
-              {% elif completion >= 50 %}
-                {% set progress_class = 'bg-info' %}
-              {% elif completion >= 25 %}
-                {% set progress_class = 'bg-warning' %}
-              {% else %}
-                {% set progress_class = 'bg-danger' %}
-              {% endif %}
+              {% for e in site_entries %}
               <tr>
-                <td class="fw-500">{{ a.activity_name }}</td>
-                <td>{{ a.unit or '—' }}</td>
-                <td>{{ "%.1f"|format(target_qty) }}</td>
-                <td>{{ "%.1f"|format(achieved_qty) }}</td>
-                <td class="fw-600">{{ "%.1f"|format(completion) }}%</td>
-                <td style="min-width:120px;">
-                  <div class="progress-mini">
-                    <div class="progress-bar {{ progress_class }}" {{ 'style="width:' ~ completion ~ '%;"' | safe }}></div>
-                  </div>
+                <td class="text-nowrap">{{ e.created_at.strftime('%d %b %Y') if e.created_at else '—' }}</td>
+                <td class="fw-500">{{ e.engineer.name or e.engineer.username if e.engineer else '—' }}</td>
+                <td>{{ e.activity.activity_name if e.activity else '—' }}</td>
+                <td class="fw-600">{{ e.quantity }}</td>
+                <td><span class="badge-status badge-{{ e.status }}">{{ e.status }}</span></td>
+                <td>
+                  {% if e.remarks %}
+                  <span class="truncate-text fs-xs" title="{{ e.remarks }}">{{ e.remarks[:60] }}{{ '…' if e.remarks|length > 60 }}</span>
+                  {% else %}
+                  <span class="text-muted fs-xs">—</span>
+                  {% endif %}
                 </td>
               </tr>
               {% else %}
               <tr>
                 <td colspan="6">
                   <div class="empty-state py-3">
-                    <div class="empty-text">No activities defined for this project.</div>
+                    <div class="empty-text">No site entries for this project.</div>
                   </div>
                 </td>
               </tr>
@@ -186,175 +286,258 @@
     </div>
   </div>
 
-  <!-- Activity Chart -->
-  <div class="col-lg-5">
-    <div class="chart-card">
-      <h5 class="chart-title"><i class="bi bi-bar-chart me-2"></i>Activity Progress</h5>
-      <div class="chart-body" style="height:320px;">
-        <canvas id="activityChart"></canvas>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ====================================================================
-     MEDIA GALLERY
-     ==================================================================== -->
-<div class="card-rmmv mb-4">
-  <div class="card-header-rmmv">
-    <h5><i class="bi bi-images me-2"></i>Media Gallery</h5>
-    <div class="header-actions">
-      <span class="fs-xs text-muted">{{ media_files|length if media_files else 0 }} files</span>
-    </div>
-  </div>
-  <div class="card-body-rmmv">
-    {% if media_files %}
-    <div class="media-grid">
-      {% for m in media_files %}
-      <div class="media-thumb" data-bs-toggle="modal" data-bs-target="#mediaModal{{ m.id }}">
-        {% if m.file_type == 'image' %}
-        <img src="{{ url_for('static', filename=m.path) }}" alt="{{ m.original_filename }}">
-        {% else %}
-        <video muted>
-          <source src="{{ url_for('static', filename=m.path) }}">
-        </video>
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-                    font-size:2rem;color:white;text-shadow:0 2px 8px rgba(0,0,0,0.5);">
-          <i class="bi bi-play-circle-fill"></i>
-        </div>
-        {% endif %}
-        <div class="media-overlay">
-          <i class="bi bi-calendar3 me-1"></i>
-          {{ m.created_at.strftime('%d %b %Y') if m.created_at else '' }}
-        </div>
-      </div>
-
-      <!-- Media Modal -->
-      <div class="modal fade" id="mediaModal{{ m.id }}" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">{{ m.original_filename }}</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+  <!-- ================================================================
+       TAB 3: FINANCIAL
+       ================================================================ -->
+  <div class="tab-pane fade {% if active_tab == 'financial' %}show active{% endif %}" id="financial-panel" role="tabpanel">
+    <div class="row g-4 mt-1">
+      <div class="col-lg-6">
+        <div class="card-rmmv">
+          <div class="card-header-rmmv">
+            <h5><i class="bi bi-currency-rupee me-2"></i>Financial Summary</h5>
+          </div>
+          <div class="card-body-rmmv">
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <div class="kpi-card kpi-info">
+                  <div class="kpi-number">₹ {{ "%.2f"|format(project.cost or 0) }} Cr</div>
+                  <div class="kpi-label">Total Project Cost</div>
+                </div>
+              </div>
+              <div class="col-sm-6">
+                <div class="kpi-card kpi-success">
+                  <div class="kpi-number">₹ {{ "%.2f"|format((project.cost or 0) * (project.financial_progress or 0) / 100) }} Cr</div>
+                  <div class="kpi-label">Expenditure to Date</div>
+                </div>
+              </div>
+              <div class="col-sm-6">
+                <div class="kpi-card kpi-warning">
+                  <div class="kpi-number">{{ "%.1f"|format(project.financial_progress or 0) }}%</div>
+                  <div class="kpi-label">Financial Progress</div>
+                </div>
+              </div>
+              <div class="col-sm-6">
+                <div class="kpi-card kpi-danger">
+                  <div class="kpi-number">₹ {{ "%.2f"|format((project.cost or 0) * (1 - (project.financial_progress or 0) / 100)) }} Cr</div>
+                  <div class="kpi-label">Balance Amount</div>
+                </div>
+              </div>
             </div>
-            <div class="modal-body text-center p-0">
-              {% if m.file_type == 'image' %}
-              <img src="{{ url_for('static', filename=m.path) }}"
-                   alt="{{ m.original_filename }}" style="max-width:100%;border-radius:0 0 10px 10px;">
-              {% else %}
-              <video controls style="max-width:100%;">
-                <source src="{{ url_for('static', filename=m.path) }}">
-              </video>
-              {% endif %}
-            </div>
-            {% if m.description %}
-            <div class="modal-footer justify-content-start">
-              <p class="fs-sm text-muted mb-0">{{ m.description }}</p>
-            </div>
-            {% endif %}
           </div>
         </div>
       </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <div class="empty-state py-4">
-      <i class="bi bi-images empty-icon"></i>
-      <div class="empty-title">No media uploaded</div>
-      <div class="empty-text">Photos and videos will appear here once uploaded.</div>
-    </div>
-    {% endif %}
-  </div>
-</div>
-
-<!-- ====================================================================
-     SITE ENTRIES TABLE
-     ==================================================================== -->
-<div class="card-rmmv mb-4">
-  <div class="card-header-rmmv">
-    <h5><i class="bi bi-clipboard-data me-2"></i>Site Entries</h5>
-  </div>
-  <div class="card-body-rmmv p-0">
-    <div class="table-responsive-rmmv">
-      <table class="table-rmmv">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Engineer</th>
-            <th>Activity</th>
-            <th>Qty</th>
-            <th>Status</th>
-            <th>Remarks</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for e in site_entries %}
-          <tr>
-            <td class="text-nowrap">{{ e.created_at.strftime('%d %b %Y') if e.created_at else '—' }}</td>
-            <td class="fw-500">{{ e.engineer.name or e.engineer.username if e.engineer else '—' }}</td>
-            <td>{{ e.activity.activity_name if e.activity else '—' }}</td>
-            <td class="fw-600">{{ e.quantity }}</td>
-            <td><span class="badge-status badge-{{ e.status }}">{{ e.status }}</span></td>
-            <td>
-              {% if e.remarks %}
-              <span class="truncate-text fs-xs" title="{{ e.remarks }}">{{ e.remarks[:60] }}{{ '…' if e.remarks|length > 60 }}</span>
-              {% else %}
-              <span class="text-muted fs-xs">—</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="6">
-              <div class="empty-state py-3">
-                <div class="empty-text">No site entries for this project.</div>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- ====================================================================
-     AUDIT HISTORY (Timeline)
-     ==================================================================== -->
-<div class="card-rmmv">
-  <div class="card-header-rmmv">
-    <h5><i class="bi bi-clock-history me-2"></i>Audit History</h5>
-  </div>
-  <div class="card-body-rmmv">
-    {% if audit_logs %}
-    <div class="audit-timeline">
-      {% for log in audit_logs %}
-      <div class="audit-timeline-item">
-        <div class="audit-time">
-          {{ log.created_at.strftime('%d %b %Y, %I:%M %p') if log.created_at else '—' }}
-        </div>
-        <div class="audit-content">
-          <strong>{{ log.user.name or log.user.username if log.user else 'System' }}</strong>
-          {{ log.action }}
-          {% if log.entity_type %}
-          on <em>{{ log.entity_type }} #{{ log.entity_id }}</em>
-          {% endif %}
+      <div class="col-lg-6">
+        <div class="chart-card">
+          <h5 class="chart-title"><i class="bi bi-pie-chart me-2"></i>Physical vs Financial</h5>
+          <div class="chart-body" style="height:280px;">
+            <canvas id="financialChart"></canvas>
+          </div>
         </div>
       </div>
-      {% endfor %}
     </div>
-    {% else %}
-    <div class="empty-state py-4">
-      <i class="bi bi-clock-history empty-icon"></i>
-      <div class="empty-title">No audit history</div>
-      <div class="empty-text">Activity history will appear here as changes are made.</div>
-    </div>
-    {% endif %}
   </div>
+
+  <!-- ================================================================
+       TAB 4: IMAGES
+       ================================================================ -->
+  <div class="tab-pane fade {% if active_tab == 'images' %}show active{% endif %}" id="images-panel" role="tabpanel">
+    <div class="card-rmmv mt-3">
+      <div class="card-header-rmmv">
+        <h5><i class="bi bi-images me-2"></i>Image Gallery</h5>
+        <div class="header-actions">
+          <span class="fs-xs text-muted">{{ media_files|selectattr('file_type', 'equalto', 'image')|list|length }} images</span>
+        </div>
+      </div>
+      <div class="card-body-rmmv">
+        {% set images = media_files|selectattr('file_type', 'equalto', 'image')|list %}
+        {% if images %}
+        <div class="media-grid">
+          {% for m in images %}
+          <div class="media-thumb" data-bs-toggle="modal" data-bs-target="#mediaModal{{ m.id }}">
+            <img src="{{ url_for('static', filename=m.path) }}" alt="{{ m.original_filename }}">
+            <div class="media-overlay">
+              <i class="bi bi-calendar3 me-1"></i>
+              {{ m.created_at.strftime('%d %b %Y') if m.created_at else '' }}
+            </div>
+          </div>
+          <!-- Media Modal -->
+          <div class="modal fade" id="mediaModal{{ m.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">{{ m.original_filename }}</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-0">
+                  <img src="{{ url_for('static', filename=m.path) }}"
+                       alt="{{ m.original_filename }}" style="max-width:100%;border-radius:0 0 10px 10px;">
+                </div>
+                {% if m.description %}
+                <div class="modal-footer justify-content-start">
+                  <p class="fs-sm text-muted mb-0">{{ m.description }}</p>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state py-4">
+          <i class="bi bi-images empty-icon"></i>
+          <div class="empty-title">No images uploaded</div>
+          <div class="empty-text">Photos will appear here once uploaded by site engineers.</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       TAB 5: VIDEOS
+       ================================================================ -->
+  <div class="tab-pane fade {% if active_tab == 'videos' %}show active{% endif %}" id="videos-panel" role="tabpanel">
+    <div class="card-rmmv mt-3">
+      <div class="card-header-rmmv">
+        <h5><i class="bi bi-camera-video me-2"></i>Video Gallery</h5>
+      </div>
+      <div class="card-body-rmmv">
+        {% set videos = media_files|selectattr('file_type', 'equalto', 'video')|list %}
+        {% if videos %}
+        <div class="media-grid">
+          {% for v in videos %}
+          <div class="media-thumb" data-bs-toggle="modal" data-bs-target="#videoModal{{ v.id }}">
+            <video muted>
+              <source src="{{ url_for('static', filename=v.path) }}">
+            </video>
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+                        font-size:2rem;color:white;text-shadow:0 2px 8px rgba(0,0,0,0.5);">
+              <i class="bi bi-play-circle-fill"></i>
+            </div>
+            <div class="media-overlay">
+              <i class="bi bi-calendar3 me-1"></i>
+              {{ v.created_at.strftime('%d %b %Y') if v.created_at else '' }}
+            </div>
+          </div>
+          <div class="modal fade" id="videoModal{{ v.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">{{ v.original_filename }}</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-0">
+                  <video controls style="max-width:100%;">
+                    <source src="{{ url_for('static', filename=v.path) }}">
+                  </video>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state py-4">
+          <i class="bi bi-camera-video empty-icon"></i>
+          <div class="empty-title">No videos uploaded</div>
+          <div class="empty-text">Videos will appear here once uploaded.</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       TAB 6: DOCUMENTS
+       ================================================================ -->
+  <div class="tab-pane fade {% if active_tab == 'documents' %}show active{% endif %}" id="documents-panel" role="tabpanel">
+    <div class="card-rmmv mt-3">
+      <div class="card-header-rmmv">
+        <h5><i class="bi bi-file-earmark-text me-2"></i>Project Documents</h5>
+      </div>
+      <div class="card-body-rmmv p-0">
+        {% if documents %}
+        <div class="table-responsive-rmmv">
+          <table class="table-rmmv">
+            <thead>
+              <tr>
+                <th>Document</th>
+                <th>Type</th>
+                <th>Uploaded By</th>
+                <th>Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for doc in documents %}
+              <tr>
+                <td class="fw-500"><i class="bi bi-file-earmark-pdf me-1 text-danger"></i>{{ doc.original_filename }}</td>
+                <td><span class="badge bg-light text-dark">{{ doc.doc_type | replace('_', ' ') | title }}</span></td>
+                <td>{{ doc.uploader.name if doc.uploader else '—' }}</td>
+                <td>{{ doc.created_at.strftime('%d %b %Y') if doc.created_at else '—' }}</td>
+                <td>
+                  <a href="{{ url_for('static', filename=doc.path) }}" class="btn btn-sm btn-outline-primary" download>
+                    <i class="bi bi-download"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state py-4">
+          <i class="bi bi-file-earmark-text empty-icon"></i>
+          <div class="empty-title">No documents uploaded</div>
+          <div class="empty-text">Reports, drawings, and specifications will appear here.</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       TAB 7: AUDIT TRAIL
+       ================================================================ -->
+  <div class="tab-pane fade {% if active_tab == 'audit' %}show active{% endif %}" id="audit-panel" role="tabpanel">
+    <div class="card-rmmv mt-3">
+      <div class="card-header-rmmv">
+        <h5><i class="bi bi-clock-history me-2"></i>Audit History</h5>
+      </div>
+      <div class="card-body-rmmv">
+        {% if audit_logs %}
+        <div class="audit-timeline">
+          {% for log in audit_logs %}
+          <div class="audit-timeline-item">
+            <div class="audit-time">
+              {{ log.created_at.strftime('%d %b %Y, %I:%M %p') if log.created_at else '—' }}
+            </div>
+            <div class="audit-content">
+              <strong>{{ log.user.name or log.user.username if log.user else 'System' }}</strong>
+              {{ log.action }}
+              {% if log.entity_type %}
+              on <em>{{ log.entity_type }} #{{ log.entity_id }}</em>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state py-4">
+          <i class="bi bi-clock-history empty-icon"></i>
+          <div class="empty-title">No audit history</div>
+          <div class="empty-text">Activity history will appear here as changes are made.</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
 
 {% block scripts %}
+<!-- Chart data for progress and financial tabs -->
 <script id="chart-data" type="application/json">
 {
   "labels": {{ activity_labels | default([]) | tojson }},
@@ -362,5 +545,101 @@
   "achieved": {{ activity_achieved | default([]) | tojson }}
 }
 </script>
+
+<!-- Project GIS Map script -->
+<script src="{{ url_for('static', filename='js/project_gis.js') }}"></script>
 <script src="{{ url_for('static', filename='js/project_details.js') }}"></script>
+
+<script>
+(function() {
+  'use strict';
+
+  // --- Initialize GIS Map when tab is shown ---
+  var gisInitialized = false;
+  var projectMap = null;
+
+  function initGIS() {
+    if (gisInitialized) return;
+    gisInitialized = true;
+
+    var projectData = {
+      lat: {{ project.latitude or 11.1271 }},
+      lng: {{ project.longitude or 78.6569 }},
+      name: {{ project.name | tojson }},
+      project_id: {{ project.id }}
+    };
+
+    projectMap = initProjectMap('projectGISMap', projectData, { zoom: 14 });
+
+    // Build the API URL based on the current user's role
+    var apiUrl = '';
+    {% if current_user.role == 'state' %}
+    apiUrl = '{{ url_for("state.project_gis_data", id=project.id) }}';
+    {% elif current_user.role == 'ulb' %}
+    apiUrl = '{{ url_for("ulb.project_gis_data", id=project.id) }}';
+    {% else %}
+    apiUrl = '{{ url_for("site.project_gis_data", id=project.id) }}';
+    {% endif %}
+
+    loadProjectGIS(projectMap, {{ project.id }}, apiUrl);
+  }
+
+  // Initialize immediately if GIS tab is active
+  {% if active_tab == 'gis' %}
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(initGIS, 200);
+  });
+  {% endif %}
+
+  // Initialize when GIS tab is clicked
+  var gisTab = document.getElementById('gis-tab');
+  if (gisTab) {
+    gisTab.addEventListener('shown.bs.tab', function() {
+      setTimeout(function() {
+        initGIS();
+        if (projectMap) projectMap.invalidateSize();
+      }, 100);
+    });
+  }
+
+  // --- Financial Chart ---
+  var financialTab = document.getElementById('financial-tab');
+  var financialInit = false;
+  function initFinancialChart() {
+    if (financialInit) return;
+    financialInit = true;
+    var ctx = document.getElementById('financialChart');
+    if (!ctx) return;
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Physical Progress', 'Financial Progress'],
+        datasets: [{
+          label: 'Progress %',
+          data: [{{ project.physical_progress or 0 }}, {{ project.financial_progress or 0 }}],
+          backgroundColor: ['#00b894', '#d90429'],
+          borderRadius: 6,
+          barThickness: 60
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true, max: 100, ticks: { callback: function(v) { return v + '%'; } } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+  {% if active_tab == 'financial' %}
+  document.addEventListener('DOMContentLoaded', initFinancialChart);
+  {% endif %}
+  if (financialTab) {
+    financialTab.addEventListener('shown.bs.tab', function() {
+      setTimeout(initFinancialChart, 100);
+    });
+  }
+})();
+</script>
 {% endblock %}

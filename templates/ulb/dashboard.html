@@ -80,8 +80,11 @@
      PROJECTS TABLE
      ==================================================================== -->
 <div class="card-rmmv mb-4">
-  <div class="card-header-rmmv">
+  <div class="card-header-rmmv d-flex justify-content-between align-items-center">
     <h5><i class="bi bi-table me-2"></i>My Projects</h5>
+    <a href="{{ url_for('ulb.create_project') }}" class="btn btn-sm btn-rmmv text-white">
+      <i class="bi bi-plus-lg me-1"></i>Create New Project
+    </a>
   </div>
   <div class="card-body-rmmv p-0">
     <div class="table-responsive-rmmv">
@@ -128,9 +131,9 @@
                  class="btn btn-sm btn-rmmv btn-rmmv-outline me-1">
                 <i class="bi bi-eye"></i> View
               </a>
-              <a href="{{ url_for('ulb.project_detail', id=p.id) }}"
+              <a href="{{ url_for('ulb.edit_project', id=p.id) }}"
                  class="btn btn-sm btn-rmmv btn-rmmv-primary">
-                <i class="bi bi-pencil-square"></i> Details
+                <i class="bi bi-pencil-square"></i> Edit
               </a>
             </td>
           </tr>

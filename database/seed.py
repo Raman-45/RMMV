@@ -1,267 +1,405 @@
 """
-RMMV Dashboard — Database Seed Data
-=====================================
-Populates the database with realistic demo data for Tamil Nadu
-water supply infrastructure projects. Idempotent — only seeds when
-the database is empty.
+RMMV Database Seed
+==================
+Populates the database with realistic sample data for the Tamil Nadu 
+Remote Monitoring, Measurement & Verification dashboard.
+Includes ULBs (Implementing Agencies), Users, Projects, Activities,
+and full GIS Project Digital Twin data (ProjectBoundary, ProjectAsset, Device).
 """
 
-from datetime import date
+import json
+from datetime import datetime, date, timedelta, timezone
+from werkzeug.security import generate_password_hash
 
-from database.models import db, User, ULB, Project, Activity, SiteEntry
+def seed_database(db):
+    from database.models import (
+        User, ULB, Project, Activity, SiteEntry, AuditLog, 
+        ProjectBoundary, ProjectAsset, Device, MediaFile
+    )
 
-
-def seed_database(app_db):
-    """Insert demo ULBs, users, projects, activities, and site entries.
-
-    Parameters
-    ----------
-    app_db : SQLAlchemy
-        The initialised SQLAlchemy extension instance (unused directly —
-        we operate via the imported ``db`` / models, but accepted to
-        match the call signature from ``app.py``).
-    """
-
-    # Guard: only seed into an empty database
+    # Only seed if database is empty
     if User.query.first() is not None:
         return
 
-    # ------------------------------------------------------------------
-    # 1. Urban Local Bodies
-    # ------------------------------------------------------------------
-    ulb_bhopal = ULB(
-        name='Chennai Municipal Corporation',
-        district='Chennai',
-        state='Tamil Nadu',
-        code='GCC-TN',
-    )
-    ulb_indore = ULB(
-        name='Coimbatore Municipal Corporation',
-        district='Coimbatore',
-        state='Tamil Nadu',
-        code='CMC-TN',
-    )
-    ulb_jabalpur = ULB(
-        name='Madurai Municipal Corporation',
-        district='Madurai',
-        state='Tamil Nadu',
-        code='MMC-TN',
-    )
-    db.session.add_all([ulb_bhopal, ulb_indore, ulb_jabalpur])
-    db.session.flush()  # Assign IDs before FK references
+    print("Seeding database...")
 
-    # ------------------------------------------------------------------
-    # 2. Users
-    # ------------------------------------------------------------------
+    # --- 1. Implementing Agencies (ULBs / Statutory Bodies) -------------------
+    ulb_chennai = ULB(
+        name='Greater Chennai Corporation', district='Chennai',
+        code='GCC-TN', state='Tamil Nadu', agency_type='Municipal Corporation'
+    )
+    ulb_kancheepuram = ULB(
+        name='Kancheepuram Municipal Corporation', district='Kancheepuram',
+        code='KMC-TN', state='Tamil Nadu', agency_type='Municipal Corporation'
+    )
+    ulb_madurai = ULB(
+        name='Madurai Municipal Corporation', district='Madurai',
+        code='MMC-TN', state='Tamil Nadu', agency_type='Municipal Corporation'
+    )
+    ulb_twad = ULB(
+        name='TWAD Board', district='State-wide',
+        code='TWAD-TN', state='Tamil Nadu', agency_type='Statutory Body'
+    )
+    ulb_cmwssb = ULB(
+        name='CMWSSB', district='Chennai',
+        code='CMWSSB-TN', state='Tamil Nadu', agency_type='Statutory Body'
+    )
+    
+    db.session.add_all([ulb_chennai, ulb_kancheepuram, ulb_madurai, ulb_twad, ulb_cmwssb])
+    db.session.commit()
+
+    # --- 2. Users ------------------------------------------------------------
     admin = User(
         username='admin',
-        name='Rajesh Kumar (State PMU)',
-        email='admin@rmmv.gov.in',
+        password_hash=generate_password_hash('admin123'),
         role='state',
-        ulb_id=None,
+        name='Mr. Rajesh Kumar (State PMU)',
+        email='rajeshkumar.pmu@tn.gov.in'
     )
-    admin.set_password('admin123')
-
     ulb_officer = User(
         username='ulb_officer',
-        name='Priya Sharma (ULB Officer)',
-        email='priya@chennaicorporation.gov.in',
+        password_hash=generate_password_hash('ulb123'),
         role='ulb',
-        ulb_id=ulb_bhopal.id,
+        ulb_id=ulb_chennai.id,
+        name='Priya Sharma (Agency Officer)',
+        email='priya.gcc@tn.gov.in'
     )
-    ulb_officer.set_password('ulb123')
-
     site_eng = User(
         username='site_eng',
-        name='Amit Verma (Site Engineer)',
-        email='amit@chennaicorporation.gov.in',
+        password_hash=generate_password_hash('site123'),
         role='site',
-        ulb_id=ulb_bhopal.id,
+        ulb_id=ulb_kancheepuram.id,
+        name='Amit Verma (Site Engineer)',
+        email='amit.site@tn.gov.in'
     )
-    site_eng.set_password('site123')
 
     db.session.add_all([admin, ulb_officer, site_eng])
-    db.session.flush()
-
-    # ------------------------------------------------------------------
-    # 3. Projects (2 per ULB = 6 total)
-    # ------------------------------------------------------------------
-    projects_data = [
-        # --- Chennai ---
-        dict(
-            name='Chennai 24×7 Water Supply — Zone A Pipeline',
-            ulb_id=ulb_bhopal.id,
-            description='Installation of 45 km DI pipeline for 24×7 water supply in Zone A covering Kolar and Velachery areas.',
-            cost=32.5,
-            physical_progress=62.0,
-            financial_progress=55.0,
-            status='active',
-            latitude=13.0827,
-            longitude=80.2707,
-            start_date=date(2024, 4, 1),
-            target_date=date(2026, 3, 31),
-            contractor='L&T Water & Effluent Treatment Ltd.',
-        ),
-        dict(
-            name='Chennai Chembarambakkam WTP Upgradation (80 MLD)',
-            ulb_id=ulb_bhopal.id,
-            description='Upgradation of existing Kolar Water Treatment Plant from 40 MLD to 80 MLD capacity.',
-            cost=48.0,
-            physical_progress=35.0,
-            financial_progress=28.0,
-            status='delayed',
-            latitude=13.0120,
-            longitude=80.2340,
-            start_date=date(2024, 1, 15),
-            target_date=date(2025, 12, 31),
-            contractor='SPML Infra Ltd.',
-        ),
-        # --- Coimbatore ---
-        dict(
-            name='Coimbatore Smart Water Metering — Phase II',
-            ulb_id=ulb_indore.id,
-            description='Installation of 1,20,000 smart water meters with IoT-based AMI system across all 85 wards.',
-            cost=18.75,
-            physical_progress=78.0,
-            financial_progress=72.0,
-            status='active',
-            latitude=11.0168,
-            longitude=76.9558,
-            start_date=date(2023, 10, 1),
-            target_date=date(2025, 9, 30),
-            contractor='Itron India Pvt. Ltd.',
-        ),
-        dict(
-            name='Coimbatore Siruvani Intake Rehabilitation',
-            ulb_id=ulb_indore.id,
-            description='Rehabilitation and capacity augmentation of Siruvani raw water intake structure and rising main.',
-            cost=12.4,
-            physical_progress=92.0,
-            financial_progress=88.0,
-            status='completed',
-            latitude=10.9800,
-            longitude=76.9200,
-            start_date=date(2023, 4, 1),
-            target_date=date(2025, 3, 31),
-            contractor='VA Tech Wabag Ltd.',
-        ),
-        # --- Madurai ---
-        dict(
-            name='Madurai Vaigai Bulk Water Transmission',
-            ulb_id=ulb_jabalpur.id,
-            description='Construction of 28 km bulk transmission main from Vaigai River to Arasaradi WTP with 3 booster stations.',
-            cost=42.0,
-            physical_progress=18.0,
-            financial_progress=12.0,
-            status='critical',
-            latitude=9.9252,
-            longitude=78.1198,
-            start_date=date(2024, 7, 1),
-            target_date=date(2027, 6, 30),
-            contractor='Megha Engineering & Infrastructures Ltd.',
-        ),
-        dict(
-            name='Madurai Ward-Level Distribution Network — South Zone',
-            ulb_id=ulb_jabalpur.id,
-            description='Replacement of aged CI distribution network with HDPE pipes in 12 southern wards.',
-            cost=8.6,
-            physical_progress=45.0,
-            financial_progress=40.0,
-            status='active',
-            latitude=9.890,
-            longitude=78.0800,
-            start_date=date(2024, 6, 15),
-            target_date=date(2026, 6, 14),
-            contractor='Tata Projects Ltd.',
-        ),
-    ]
-
-    project_objects = []
-    for pdata in projects_data:
-        proj = Project(**pdata)
-        db.session.add(proj)
-        project_objects.append(proj)
-
-    db.session.flush()
-
-    # ------------------------------------------------------------------
-    # 4. Activities (3-4 per project)
-    # ------------------------------------------------------------------
-    # Template activities with unit / weightage sets
-    activity_templates = [
-        # (activity_name, unit, weightage)
-        ('Excavation & Trenching', 'RMT', 0.20),
-        ('Pipe Laying & Jointing', 'RMT', 0.35),
-        ('Tank / Structure Construction', 'Nos', 0.30),
-        ('Testing & Commissioning', 'Nos', 0.15),
-    ]
-
-    # Realistic target quantities per project (indexed by project order)
-    qty_sets = [
-        [45000, 45000, 8, 8],       # Chennai Pipeline
-        [5000, 3000, 4, 4],         # Chennai WTP
-        [12000, 120000, 200, 200],  # Coimbatore Metering
-        [3500, 3500, 2, 2],         # Coimbatore Intake
-        [28000, 28000, 3, 3],       # Madurai Transmission
-        [18000, 18000, 12, 12],     # Madurai Distribution
-    ]
-
-    all_activities = []
-    for idx, proj in enumerate(project_objects):
-        progress_fraction = proj.physical_progress / 100.0
-        for t_idx, (a_name, unit, weightage) in enumerate(activity_templates):
-            target = qty_sets[idx][t_idx]
-            # Simulate achieved qty proportional to overall progress (± variance)
-            variance = 0.9 + (t_idx * 0.05)  # slight per-activity variance
-            achieved = round(target * progress_fraction * variance, 1)
-            achieved = min(achieved, target)  # cap at target
-
-            act = Activity(
-                project_id=proj.id,
-                activity_name=a_name,
-                unit=unit,
-                target_qty=target,
-                achieved_qty=achieved,
-                weightage=weightage,
-            )
-            db.session.add(act)
-            all_activities.append(act)
-
-    db.session.flush()
-
-    # ------------------------------------------------------------------
-    # 5. Sample Site Entries
-    # ------------------------------------------------------------------
-    # Create entries for the first project's activities (Chennai Pipeline)
-    bhopal_acts = all_activities[0:4]  # first 4 activities belong to project 1
-
-    entry_specs = [
-        # (activity_index, quantity, status, remarks)
-        (0, 250.0, 'approved', 'Excavation completed in Sector 12, soil condition stable.'),
-        (0, 180.0, 'approved', 'Trenching through rocky terrain near Kolar Road.'),
-        (1, 320.0, 'submitted', 'DI K9 pipes laid from Ch. 12+500 to Ch. 15+700.'),
-        (1, 150.0, 'submitted', 'Pipe jointing work at road crossing near Velachery.'),
-        (2, 1.0, 'draft', 'ESR foundation work started — Ward 45.'),
-        (3, 0.5, 'draft', 'Pressure testing of pipeline segment A1–A5 in progress.'),
-        (0, 200.0, 'rejected', 'Excavation measurement disputed — re-survey required.'),
-    ]
-
-    for act_idx, qty, status, remarks in entry_specs:
-        entry = SiteEntry(
-            project_id=project_objects[0].id,
-            engineer_id=site_eng.id,
-            activity_id=bhopal_acts[act_idx].id,
-            quantity=qty,
-            remarks=remarks,
-            status=status,
-            reviewed_by=ulb_officer.id if status in ('approved', 'rejected') else None,
-            review_remarks='Verified on-site.' if status == 'approved'
-                           else ('Measurement mismatch — please re-submit with photos.' if status == 'rejected' else None),
-        )
-        db.session.add(entry)
-
-    # ------------------------------------------------------------------
-    # Commit everything
-    # ------------------------------------------------------------------
     db.session.commit()
-    print('[SEED] Database seeded successfully with demo data.')
+
+    # --- 3. Projects ---------------------------------------------------------
+    p1 = Project(
+        name='Kancheepuram UGSS',
+        ulb_id=ulb_kancheepuram.id,
+        project_type='Sewerage',
+        cost=254.0,
+        physical_progress=38.40,
+        financial_progress=36.45,
+        status='active',
+        latitude=12.8342,
+        longitude=79.7036,
+        contractor='M/s Saravana Engineering & VVV Construction',
+        funding_agency='World Bank',
+        start_date=date(2024, 9, 1),
+        target_date=date(2027, 9, 30),
+        description='Progress as on 25 April 2026'
+    )
+    p2 = Project(
+        name='Kancheepuram STP',
+        ulb_id=ulb_kancheepuram.id,
+        project_type='Sewerage',
+        cost=48.0,
+        physical_progress=35.0,
+        financial_progress=28.0,
+        status='delayed',
+        latitude=13.0120,
+        longitude=80.2340,
+        contractor='SPML',
+        funding_agency='World Bank',
+        start_date=date(2024, 6, 1),
+        target_date=date(2025, 12, 31)
+    )
+    p3 = Project(
+        name='Kancheepuram WSIS',
+        ulb_id=ulb_kancheepuram.id,
+        project_type='water_supply',
+        cost=18.75,
+        physical_progress=78.0,
+        financial_progress=72.0,
+        status='active',
+        latitude=11.0168,
+        longitude=76.9558,
+        contractor='Itron',
+        funding_agency='World Bank',
+        start_date=date(2025, 3, 10),
+        target_date=date(2026, 6, 30)
+    )
+    p4 = Project(
+        name='Kancheepuram Intakes',
+        ulb_id=ulb_kancheepuram.id,
+        project_type='water_supply',
+        cost=12.4,
+        physical_progress=92.0,
+        financial_progress=88.0,
+        status='completed',
+        latitude=10.9800,
+        longitude=76.9200,
+        contractor='VA Tech Wabag',
+        funding_agency='World Bank',
+        start_date=date(2023, 11, 1),
+        target_date=date(2025, 2, 28)
+    )
+    p5 = Project(
+        name='Madhavaram UGSS',
+        ulb_id=ulb_cmwssb.id,
+        project_type='Sewerage',
+        cost=686.54,
+        physical_progress=38.0,
+        financial_progress=32.0,
+        status='active',
+        latitude=13.1482,
+        longitude=80.2310,
+        contractor='L&T Construction',
+        funding_agency='KfW',
+        start_date=date(2024, 3, 1),
+        target_date=date(2027, 4, 30)
+    )
+    p6 = Project(
+        name='Kodungaiyur Biomining Plant',
+        ulb_id=ulb_chennai.id,
+        project_type='Solid Waste Management',
+        cost=641.0,
+        physical_progress=33.0,
+        financial_progress=28.0,
+        status='active',
+        latitude=13.1310,
+        longitude=80.2560,
+        contractor='Ramky Enviro Engineers',
+        funding_agency='KfW',
+        start_date=date(2023, 6, 1),
+        target_date=date(2027, 12, 31)
+    )
+    projects = [p1, p2, p3, p4, p5, p6]
+    db.session.add_all(projects)
+    db.session.commit()
+
+    # --- 4. Activities -------------------------------------------------------
+    # --- 4a. Real activities for Kancheepuram UGSS (p1) from progress report ---
+    p1_activities = [
+        Activity(
+            project_id=p1.id,
+            activity_name='Sewer Line Laying (170.702 km)',
+            unit='KM',
+            target_qty=170.702,
+            achieved_qty=79.300,
+            weightage=0.30
+        ),
+        Activity(
+            project_id=p1.id,
+            activity_name='Manhole Erection (7,437 Nos)',
+            unit='Nos',
+            target_qty=7437.0,
+            achieved_qty=4202.0,
+            weightage=0.15
+        ),
+        Activity(
+            project_id=p1.id,
+            activity_name='House Service Connection (15,652 Nos)',
+            unit='Nos',
+            target_qty=15652.0,
+            achieved_qty=4908.0,
+            weightage=0.15
+        ),
+        Activity(
+            project_id=p1.id,
+            activity_name='Pumping Main (14.10 km)',
+            unit='KM',
+            target_qty=14.10,
+            achieved_qty=2.141,
+            weightage=0.10
+        ),
+        Activity(
+            project_id=p1.id,
+            activity_name='Pumping Stations (5 Nos)',
+            unit='Nos',
+            target_qty=5.0,
+            achieved_qty=5.0,
+            weightage=0.10
+        ),
+
+        Activity(
+            project_id=p1.id,
+            activity_name='Lifting Stations (7 Nos — LS-5A to LS-7C)',
+            unit='Nos',
+            target_qty=7.0,
+            achieved_qty=6.0,
+            weightage=0.10
+        ),
+        Activity(
+            project_id=p1.id,
+            activity_name='Road Restoration (194.54 km)',
+            unit='KM',
+            target_qty=194.54,
+            achieved_qty=66.33,
+            weightage=0.10
+        ),
+    ]
+    db.session.add_all(p1_activities)
+
+    # --- 4b. Generic activities for other projects ---
+    for proj in [p2, p3, p4, p5, p6]:
+        act1 = Activity(
+            project_id=proj.id,
+            activity_name='Excavation & Trenching',
+            unit='RMT',
+            target_qty=10000.0,
+            achieved_qty=10000.0 * (proj.physical_progress / 100),
+            weightage=0.20
+        )
+        act2 = Activity(
+            project_id=proj.id,
+            activity_name='Pipe Laying & Jointing',
+            unit='RMT',
+            target_qty=10000.0,
+            achieved_qty=10000.0 * (proj.physical_progress / 100),
+            weightage=0.35
+        )
+        act3 = Activity(
+            project_id=proj.id,
+            activity_name='Tank / Structure Construction',
+            unit='Nos',
+            target_qty=5.0,
+            achieved_qty=5.0 * (proj.physical_progress / 100),
+            weightage=0.30
+        )
+        act4 = Activity(
+            project_id=proj.id,
+            activity_name='Testing & Commissioning',
+            unit='Nos',
+            target_qty=5.0,
+            achieved_qty=5.0 * (proj.physical_progress / 100),
+            weightage=0.15
+        )
+        db.session.add_all([act1, act2, act3, act4])
+    
+    db.session.commit()
+
+    # --- 5. Project Boundaries (GeoJSON) -------------------------------------
+    def make_polygon(center_lat, center_lng, radius_deg=0.02):
+        # A simple box around the center for demo purposes
+        return {
+            "type": "Polygon",
+            "coordinates": [[
+                [center_lng - radius_deg, center_lat - radius_deg],
+                [center_lng + radius_deg, center_lat - radius_deg],
+                [center_lng + radius_deg, center_lat + radius_deg],
+                [center_lng - radius_deg, center_lat + radius_deg],
+                [center_lng - radius_deg, center_lat - radius_deg]
+            ]]
+        }
+
+    for proj in projects:
+        boundary = ProjectBoundary(
+            project_id=proj.id,
+            geojson=json.dumps(make_polygon(proj.latitude, proj.longitude)),
+            boundary_type='polygon'
+        )
+        db.session.add(boundary)
+
+    db.session.commit()
+
+    # --- 6. Project Assets (GIS Features) ------------------------------------
+    # Add assets to P1 (Chennai Pipeline)
+    assets_p1 = [
+        ProjectAsset(
+            project_id=p1.id,
+            asset_type='pipeline',
+            name='Main Trunk Pipeline (Zone A)',
+            geojson=json.dumps({
+                "type": "LineString",
+                "coordinates": [
+                    [80.2600, 13.0750], [80.2650, 13.0800], [80.2707, 13.0827], [80.2800, 13.0850]
+                ]
+            }),
+            status='installation',
+            properties_json=json.dumps({"diameter": "600mm", "material": "DI K9", "length": "3.5km"}),
+            description='Primary transmission main'
+        ),
+        ProjectAsset(
+            project_id=p1.id,
+            asset_type='oht',
+            name='Velachery OHT',
+            geojson=json.dumps({
+                "type": "Point",
+                "coordinates": [80.2600, 13.0750]
+            }),
+            status='completed',
+            properties_json=json.dumps({"capacity": "15 Lakh Litres", "type": "Overhead Tank"}),
+            description='Distribution reservoir'
+        ),
+        ProjectAsset(
+            project_id=p1.id,
+            asset_type='pump_house',
+            name='Zone A Booster Station',
+            geojson=json.dumps({
+                "type": "Point",
+                "coordinates": [80.2800, 13.0850]
+            }),
+            status='testing',
+            properties_json=json.dumps({"capacity": "500 HP", "pumps": 3}),
+            description='Main booster pumping station'
+        )
+    ]
+    
+    # Add a WTP to P2
+    assets_p2 = [
+        ProjectAsset(
+            project_id=p2.id,
+            asset_type='wtp',
+            name='Chembarambakkam WTP Module 2',
+            geojson=json.dumps({
+                "type": "Point",
+                "coordinates": [80.2340, 13.0120]
+            }),
+            status='excavation',
+            properties_json=json.dumps({"capacity": "80 MLD", "technology": "Rapid Sand Filtration"}),
+            description='Water treatment plant expansion'
+        )
+    ]
+
+    # Add meters to P3
+    assets_p3 = [
+        ProjectAsset(
+            project_id=p3.id,
+            asset_type='meter',
+            name='Bulk Flow Meter - RS Puram',
+            geojson=json.dumps({
+                "type": "Point",
+                "coordinates": [76.9558, 11.0168]
+            }),
+            status='completed',
+            properties_json=json.dumps({"size": "400mm", "type": "Electromagnetic"}),
+            description='Smart flow meter on main feeder'
+        )
+    ]
+
+    db.session.add_all(assets_p1 + assets_p2 + assets_p3)
+    db.session.commit()
+
+    # --- 7. Devices ----------------------------------------------------------
+    dev1 = Device(
+        project_id=p1.id,
+        device_type='drone',
+        name='DJI Mavic 3 Enterprise - RMMV1',
+        serial_number='DJI-M3E-001',
+        status='active',
+        latitude=13.0827,
+        longitude=80.2707,
+        last_sync=datetime.now(timezone.utc),
+        metadata_json=json.dumps({"firmware": "v1.0.4", "battery": "82%"})
+    )
+    dev2 = Device(
+        project_id=p1.id,
+        device_type='cctv',
+        name='Site Cam - Velachery OHT',
+        serial_number='CCTV-HIK-042',
+        status='active',
+        latitude=13.0750,
+        longitude=80.2600,
+        last_sync=datetime.now(timezone.utc) - timedelta(minutes=5),
+        metadata_json=json.dumps({"resolution": "4K", "network": "4G"})
+    )
+    
+    db.session.add_all([dev1, dev2])
+    db.session.commit()
+
+    print("Database seeding completed.")

@@ -21,7 +21,8 @@ from sqlalchemy import desc
 from werkzeug.utils import secure_filename
 
 from database.models import (
-    db, User, ULB, Project, Activity, SiteEntry, AuditLog, MediaFile
+    db, User, ULB, Project, Activity, SiteEntry, AuditLog, MediaFile,
+    ProjectBoundary, ProjectAsset, Document, Device
 )
 from auth.permissions import role_required, get_user_projects
 
@@ -457,3 +458,75 @@ def api_location():
         'address': address,
         'status': 'ok',
     })
+
+
+# ===========================================================================
+# PROJECT GIS DATA API — GET /site/project/<int:id>/gis-data
+# ===========================================================================
+@site_bp.route('/project/<int:id>/gis-data')
+@login_required
+@role_required(['site'])
+def project_gis_data(id):
+    """Returns GeoJSON data for a project's GIS view (Site-scoped)."""
+    project = Project.query.get_or_404(id)
+    if project.ulb_id != current_user.ulb_id:
+        abort(403)
+
+    from dashboards.state import _build_gis_response
+    return _build_gis_response(project)
+
+
+# ===========================================================================
+# MY MEDIA — GET /site/my-media
+# ===========================================================================
+@site_bp.route('/my-media')
+@login_required
+@role_required(['site'])
+def my_media():
+    """List all media files uploaded by the current site engineer."""
+    media_files = (
+        MediaFile.query
+        .filter_by(uploaded_by=current_user.id)
+        .order_by(desc(MediaFile.created_at))
+        .all()
+    )
+    return render_template('site/my_media.html', media_files=media_files)
+
+
+# ===========================================================================
+# DELETE MEDIA — POST /site/media/<int:id>/delete
+# ===========================================================================
+@site_bp.route('/media/<int:id>/delete', methods=['POST'])
+@login_required
+@role_required(['site'])
+def delete_media(id):
+    """Delete a media file uploaded by the current site engineer."""
+    media = MediaFile.query.get_or_404(id)
+
+    # Only allow deletion of own uploads
+    if media.uploaded_by != current_user.id:
+        flash('You can only delete your own uploads.', 'danger')
+        return redirect(url_for('site.my_media'))
+
+    # Delete file from disk
+    file_path = os.path.join(current_app.root_path, 'static', media.path)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Audit log
+    _create_audit_log(
+        action='delete_media',
+        entity_type='MediaFile',
+        entity_id=media.id,
+        old_value={
+            'filename': media.original_filename,
+            'project_id': media.project_id,
+        },
+    )
+
+    # Delete from database
+    db.session.delete(media)
+    db.session.commit()
+
+    flash('Media deleted successfully.', 'success')
+    return redirect(url_for('site.my_media'))

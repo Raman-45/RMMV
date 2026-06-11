@@ -6,13 +6,17 @@ The shared `db` instance is created here and imported by app.py.
 
 Models
 ------
-- User         — Authentication & role-based identity (state / ulb / site)
-- ULB          — Urban Local Body (municipality)
-- Project      — Infrastructure project tied to a ULB
-- Activity     — Line-item work activity within a project
-- SiteEntry    — Daily quantity entry submitted by a site engineer
-- AuditLog     — Immutable record of every data-changing action
-- MediaFile    — Geo-tagged photo / video evidence for a project
+- User            — Authentication & role-based identity (state / ulb / site)
+- ULB             — Urban Local Body (municipality)
+- Project         — Infrastructure project tied to a ULB
+- Activity        — Line-item work activity within a project
+- SiteEntry       — Daily quantity entry submitted by a site engineer
+- AuditLog        — Immutable record of every data-changing action
+- MediaFile       — Geo-tagged photo / video evidence for a project
+- ProjectBoundary — GeoJSON polygon/multipolygon for project area
+- ProjectAsset    — GIS features (pipelines, tanks, pump houses) within a project
+- Document        — Non-media file uploads (PDFs, DWGs, reports)
+- Device          — Monitoring devices registered to projects
 """
 
 from datetime import datetime, timezone
@@ -60,6 +64,7 @@ class User(UserMixin, db.Model):
                                        back_populates='reviewer', lazy='dynamic')
     audit_logs = db.relationship('AuditLog', back_populates='user', lazy='dynamic')
     uploaded_media = db.relationship('MediaFile', back_populates='uploader', lazy='dynamic')
+    uploaded_documents = db.relationship('Document', back_populates='uploader', lazy='dynamic')
 
     # --- Password helpers ----------------------------------------------------
     def set_password(self, password: str) -> None:
@@ -78,15 +83,17 @@ class User(UserMixin, db.Model):
 # ULB (Urban Local Body)
 # ===========================================================================
 class ULB(db.Model):
-    """Municipality / Urban Local Body entity."""
+    """Implementing Agency — Municipal Corporation, Statutory Body, or SPV."""
 
     __tablename__ = 'ulbs'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False, unique=True)
     district = db.Column(db.String(100), nullable=False)
-    state = db.Column(db.String(100), nullable=False, default='Madhya Pradesh')
+    state = db.Column(db.String(100), nullable=False, default='Tamil Nadu')
     code = db.Column(db.String(20), nullable=True, unique=True)
+    agency_type = db.Column(db.String(50), nullable=False, default='Municipal Corporation')
+    # agency_type: Municipal Corporation | Statutory Body | SPV | Municipality
 
     # --- Relationships -------------------------------------------------------
     users = db.relationship('User', back_populates='ulb', lazy='dynamic')
@@ -108,6 +115,8 @@ class Project(db.Model):
     name = db.Column(db.String(300), nullable=False)
     ulb_id = db.Column(db.Integer, db.ForeignKey('ulbs.id'), nullable=False)
     description = db.Column(db.Text, nullable=True)
+    project_type = db.Column(db.String(50), nullable=False, default='water_supply')
+    # project_type: water_supply | sewerage | drainage | solid_waste | other
     cost = db.Column(db.Float, nullable=False, default=0.0)  # in Crores (₹)
     physical_progress = db.Column(db.Float, nullable=False, default=0.0)  # 0–100
     financial_progress = db.Column(db.Float, nullable=False, default=0.0)  # 0–100
@@ -117,6 +126,7 @@ class Project(db.Model):
     start_date = db.Column(db.Date, nullable=True)
     target_date = db.Column(db.Date, nullable=True)
     contractor = db.Column(db.String(200), nullable=True)
+    funding_agency = db.Column(db.String(100), nullable=True)  # World Bank | KfW | ADB | AMRUT | State Fund
 
     # --- Relationships -------------------------------------------------------
     ulb = db.relationship('ULB', back_populates='projects')
@@ -126,6 +136,14 @@ class Project(db.Model):
                               lazy='dynamic', cascade='all, delete-orphan')
     media_files = db.relationship('MediaFile', back_populates='project',
                                   lazy='dynamic', cascade='all, delete-orphan')
+    boundaries = db.relationship('ProjectBoundary', back_populates='project',
+                                  lazy='dynamic', cascade='all, delete-orphan')
+    assets = db.relationship('ProjectAsset', back_populates='project',
+                              lazy='dynamic', cascade='all, delete-orphan')
+    documents = db.relationship('Document', back_populates='project',
+                                 lazy='dynamic', cascade='all, delete-orphan')
+    devices = db.relationship('Device', back_populates='project',
+                               lazy='dynamic', cascade='all, delete-orphan')
 
     def __repr__(self) -> str:
         return f'<Project {self.name} [{self.status}]>'
@@ -286,3 +304,164 @@ class MediaFile(db.Model):
 
     def __repr__(self) -> str:
         return f'<MediaFile {self.original_filename} ({self.file_type})>'
+
+
+# ===========================================================================
+# ProjectBoundary
+# ===========================================================================
+class ProjectBoundary(db.Model):
+    """GeoJSON polygon/multipolygon defining a project's geographic area."""
+
+    __tablename__ = 'project_boundaries'
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    geojson = db.Column(db.Text, nullable=False)  # Full GeoJSON geometry object
+    boundary_type = db.Column(db.String(20), nullable=False, default='polygon')
+    # boundary_type: polygon | multipolygon | circle
+    area_sqm = db.Column(db.Float, nullable=True)  # Computed area in sq meters
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                           onupdate=lambda: datetime.now(timezone.utc))
+
+    # --- Relationships -------------------------------------------------------
+    project = db.relationship('Project', back_populates='boundaries')
+
+    def get_geojson(self):
+        """Return parsed GeoJSON dict."""
+        try:
+            return json.loads(self.geojson)
+        except (json.JSONDecodeError, TypeError):
+            return None
+
+    def __repr__(self) -> str:
+        return f'<ProjectBoundary project={self.project_id} ({self.boundary_type})>'
+
+
+# ===========================================================================
+# ProjectAsset
+# ===========================================================================
+class ProjectAsset(db.Model):
+    """GIS feature within a project — pipelines, tanks, pump houses, etc.
+
+    Stores geometry as GeoJSON and tracks construction status independently.
+
+    Asset Types
+    -----------
+    pipeline    — Linear water/sewage pipeline (LineString)
+    stp         — Sewage Treatment Plant (Point/Polygon)
+    wtp         — Water Treatment Plant (Point/Polygon)
+    oht         — Overhead Tank (Point)
+    pump_house  — Pump House / Booster Station (Point)
+    valve       — Valve Chamber (Point)
+    meter       — Flow/Pressure Meter (Point)
+    manhole     — Manhole / Inspection Chamber (Point)
+
+    Construction Status
+    -------------------
+    not_started → excavation → installation → testing → completed
+    """
+
+    __tablename__ = 'project_assets'
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    asset_type = db.Column(db.String(30), nullable=False)
+    # asset_type: pipeline | stp | wtp | oht | pump_house | valve | meter | manhole
+    name = db.Column(db.String(200), nullable=False)
+    geojson = db.Column(db.Text, nullable=False)  # GeoJSON geometry (Point/LineString/Polygon)
+    status = db.Column(db.String(20), nullable=False, default='not_started')
+    # status: not_started | excavation | installation | testing | completed
+    properties_json = db.Column(db.Text, nullable=True)  # JSON — diameter, material, capacity, etc.
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                           onupdate=lambda: datetime.now(timezone.utc))
+
+    # --- Relationships -------------------------------------------------------
+    project = db.relationship('Project', back_populates='assets')
+
+    def get_geojson(self):
+        """Return parsed GeoJSON geometry dict."""
+        try:
+            return json.loads(self.geojson)
+        except (json.JSONDecodeError, TypeError):
+            return None
+
+    def get_properties(self):
+        """Return parsed properties dict."""
+        try:
+            return json.loads(self.properties_json) if self.properties_json else {}
+        except (json.JSONDecodeError, TypeError):
+            return {}
+
+    def __repr__(self) -> str:
+        return f'<ProjectAsset {self.name} ({self.asset_type}) [{self.status}]>'
+
+
+# ===========================================================================
+# Document
+# ===========================================================================
+class Document(db.Model):
+    """Non-media file upload — PDFs, DWGs, survey reports, specifications."""
+
+    __tablename__ = 'documents'
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    doc_type = db.Column(db.String(30), nullable=False, default='report')
+    # doc_type: report | drawing | survey | specification | approval | other
+    filename = db.Column(db.String(255), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    path = db.Column(db.String(500), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # --- Relationships -------------------------------------------------------
+    project = db.relationship('Project', back_populates='documents')
+    uploader = db.relationship('User', back_populates='uploaded_documents')
+
+    def __repr__(self) -> str:
+        return f'<Document {self.original_filename} ({self.doc_type})>'
+
+
+# ===========================================================================
+# Device
+# ===========================================================================
+class Device(db.Model):
+    """Monitoring device registered to a project.
+
+    Device Types
+    ------------
+    drone | cctv | flow_meter | pressure_meter | level_sensor | mobile
+    """
+
+    __tablename__ = 'devices'
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    device_type = db.Column(db.String(30), nullable=False)
+    # device_type: drone | cctv | flow_meter | pressure_meter | level_sensor | mobile
+    name = db.Column(db.String(200), nullable=False)
+    serial_number = db.Column(db.String(100), nullable=True, unique=True)
+    status = db.Column(db.String(20), nullable=False, default='active')
+    # status: active | offline | maintenance
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
+    last_sync = db.Column(db.DateTime, nullable=True)
+    metadata_json = db.Column(db.Text, nullable=True)  # JSON — model, firmware, battery, etc.
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # --- Relationships -------------------------------------------------------
+    project = db.relationship('Project', back_populates='devices')
+
+    def get_metadata(self):
+        """Return parsed metadata dict."""
+        try:
+            return json.loads(self.metadata_json) if self.metadata_json else {}
+        except (json.JSONDecodeError, TypeError):
+            return {}
+
+    def __repr__(self) -> str:
+        return f'<Device {self.name} ({self.device_type}) [{self.status}]>'

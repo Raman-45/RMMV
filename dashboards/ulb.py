@@ -19,7 +19,8 @@ from flask_login import login_required, current_user
 from sqlalchemy import desc
 
 from database.models import (
-    db, User, ULB, Project, Activity, SiteEntry, AuditLog, MediaFile
+    db, User, ULB, Project, Activity, SiteEntry, AuditLog, MediaFile,
+    ProjectBoundary, ProjectAsset, Document, Device
 )
 from auth.permissions import role_required, get_user_projects
 
@@ -192,7 +193,7 @@ def dashboard():
 def project_detail(id):
     """
     Detailed project view — only accessible if the project belongs to the
-    officer's ULB.
+    officer's ULB. Now includes documents, devices, and GIS data.
     """
     project = Project.query.get_or_404(id)
     _verify_project_ownership(project)
@@ -218,6 +219,20 @@ def project_detail(id):
         .all()
     )
 
+    documents = (
+        Document.query
+        .filter_by(project_id=project.id)
+        .order_by(desc(Document.created_at))
+        .all()
+    )
+
+    devices = (
+        Device.query
+        .filter_by(project_id=project.id)
+        .order_by(Device.name)
+        .all()
+    )
+
     activity_labels = [a.activity_name for a in activities]
     activity_targets = [float(a.target_qty or 0) for a in activities]
     activity_achieved = [float(a.achieved_qty or 0) for a in activities]
@@ -226,9 +241,11 @@ def project_detail(id):
         AuditLog.query
         .filter_by(entity_type='Project', entity_id=project.id)
         .order_by(desc(AuditLog.created_at))
-        .limit(15)
+        .limit(20)
         .all()
     )
+
+    active_tab = request.args.get('tab', 'gis')
 
     return render_template(
         'project_detail.html',
@@ -236,11 +253,29 @@ def project_detail(id):
         activities=activities,
         site_entries=entries,
         media_files=media,
+        documents=documents,
+        devices=devices,
         activity_labels=activity_labels,
         activity_targets=activity_targets,
         activity_achieved=activity_achieved,
         audit_logs=audit_logs,
+        active_tab=active_tab,
     )
+
+
+# ===========================================================================
+# PROJECT GIS DATA API — GET /ulb/project/<int:id>/gis-data
+# ===========================================================================
+@ulb_bp.route('/project/<int:id>/gis-data')
+@login_required
+@role_required(['ulb'])
+def project_gis_data(id):
+    """Returns GeoJSON data for a project's GIS view (ULB-scoped)."""
+    project = Project.query.get_or_404(id)
+    _verify_project_ownership(project)
+
+    from dashboards.state import _build_gis_response
+    return _build_gis_response(project)
 
 
 # ===========================================================================
@@ -466,6 +501,194 @@ def reject_entry(id):
     db.session.commit()
     flash('Site entry rejected.', 'info')
     return redirect(url_for('ulb.review_entries'))
+# ===========================================================================
+# CREATE PROJECT — GET/POST /ulb/project/create
+# ===========================================================================
+@ulb_bp.route('/project/create', methods=['GET', 'POST'])
+@login_required
+@role_required(['ulb'])
+def create_project():
+    """
+    GET:  Render the project creation form (scoped to this ULB).
+    POST: Create a new project for this ULB.
+    """
+    # ULB officer can only create projects for their own ULB
+    my_ulb = ULB.query.get(current_user.ulb_id)
+    ulbs = [my_ulb]
+
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        ulb_id = current_user.ulb_id  # Fixed to their ULB
+        project_type = request.form.get('project_type', 'water_supply')
+        description = request.form.get('description', '').strip()
+        contractor = request.form.get('contractor', '').strip()
+        cost = request.form.get('cost', 0.0, type=float)
+        start_date_str = request.form.get('start_date', '')
+        target_date_str = request.form.get('target_date', '')
+        latitude = request.form.get('latitude', type=float)
+        longitude = request.form.get('longitude', type=float)
+        funding_agency = request.form.get('funding_agency', '').strip()
+
+        errors = []
+        if not name:
+            errors.append('Project name is required.')
+
+        if errors:
+            for err in errors:
+                flash(err, 'danger')
+            return render_template(
+                'ulb/project_form.html',
+                project=None,
+                ulbs=ulbs,
+                edit_mode=False,
+            )
+
+        start_date = None
+        target_date = None
+        try:
+            if start_date_str:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            if target_date_str:
+                target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Invalid date format.', 'danger')
+
+        project = Project(
+            name=name,
+            ulb_id=ulb_id,
+            project_type=project_type,
+            description=description,
+            contractor=contractor,
+            cost=cost,
+            start_date=start_date,
+            target_date=target_date,
+            latitude=latitude,
+            longitude=longitude,
+            funding_agency=funding_agency or None,
+            status='active',
+            physical_progress=0.0,
+            financial_progress=0.0,
+        )
+        db.session.add(project)
+        db.session.flush()
+
+        # Activities
+        activity_names = request.form.getlist('activity_name[]')
+        activity_units = request.form.getlist('activity_unit[]')
+        activity_targets = request.form.getlist('activity_target[]')
+        activity_weightages = request.form.getlist('activity_weightage[]')
+
+        for i in range(len(activity_names)):
+            if activity_names[i].strip():
+                act = Activity(
+                    project_id=project.id,
+                    activity_name=activity_names[i].strip(),
+                    unit=activity_units[i].strip() if i < len(activity_units) else 'units',
+                    target_qty=float(activity_targets[i]) if i < len(activity_targets) and activity_targets[i] else 0.0,
+                    weightage=float(activity_weightages[i]) if i < len(activity_weightages) and activity_weightages[i] else 0.0,
+                    achieved_qty=0.0,
+                )
+                db.session.add(act)
+
+        boundary_file = request.files.get('boundary_file')
+        if boundary_file and boundary_file.filename:
+            from dashboards.state import _process_boundary_upload
+            _process_boundary_upload(project, boundary_file)
+
+        AuditLog.log_action(
+            user_id=current_user.id,
+            action='create_project',
+            entity_type='Project',
+            entity_id=project.id,
+            new_value={'name': name, 'ulb_id': ulb_id, 'cost': cost},
+            ip_address=request.remote_addr,
+        )
+
+        db.session.commit()
+        flash(f'Project "{name}" created successfully!', 'success')
+        return redirect(url_for('ulb.project_detail', id=project.id))
+
+    return render_template(
+        'ulb/project_form.html',
+        project=None,
+        ulbs=ulbs,
+        edit_mode=False,
+    )
+
+
+# ===========================================================================
+# EDIT PROJECT — GET/POST /ulb/project/<int:id>/edit
+# ===========================================================================
+@ulb_bp.route('/project/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+@role_required(['ulb'])
+def edit_project(id):
+    """Edit an existing project within this ULB."""
+    project = Project.query.get_or_404(id)
+    _verify_project_ownership(project)
+    
+    my_ulb = ULB.query.get(current_user.ulb_id)
+    ulbs = [my_ulb]
+
+    if request.method == 'POST':
+        old_values = {
+            'name': project.name,
+            'cost': project.cost,
+            'status': project.status,
+        }
+
+        project.name = request.form.get('name', project.name).strip()
+        # Ensure ulb_id stays the same
+        project.project_type = request.form.get('project_type', project.project_type)
+        project.description = request.form.get('description', '').strip()
+        project.contractor = request.form.get('contractor', '').strip()
+        project.cost = request.form.get('cost', project.cost, type=float)
+        project.latitude = request.form.get('latitude', project.latitude, type=float)
+        project.longitude = request.form.get('longitude', project.longitude, type=float)
+        funding_agency_val = request.form.get('funding_agency', '').strip()
+        project.funding_agency = funding_agency_val or project.funding_agency
+
+        start_date_str = request.form.get('start_date', '')
+        target_date_str = request.form.get('target_date', '')
+        try:
+            if start_date_str:
+                project.start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            if target_date_str:
+                project.target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+
+        boundary_file = request.files.get('boundary_file')
+        if boundary_file and boundary_file.filename:
+            from dashboards.state import _process_boundary_upload
+            _process_boundary_upload(project, boundary_file)
+
+        new_values = {
+            'name': project.name,
+            'cost': project.cost,
+            'status': project.status,
+        }
+
+        AuditLog.log_action(
+            user_id=current_user.id,
+            action='edit_project',
+            entity_type='Project',
+            entity_id=project.id,
+            old_value=old_values,
+            new_value=new_values,
+            ip_address=request.remote_addr,
+        )
+
+        db.session.commit()
+        flash('Project updated successfully.', 'success')
+        return redirect(url_for('ulb.project_detail', id=project.id))
+
+    return render_template(
+        'ulb/project_form.html',
+        project=project,
+        ulbs=ulbs,
+        edit_mode=True,
+    )
 
 
 # ===========================================================================

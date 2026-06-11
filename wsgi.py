@@ -1,15 +1,18 @@
-"""
-RMMV Dashboard — WSGI Entry Point
-=================================
-This file is the entry point for production WSGI servers like PythonAnywhere,
-gunicorn, or waitress. It instantiates the Flask application.
-"""
+# PythonAnywhere WSGI configuration file
+# This file contains the WSGI configuration required to serve up your
+# web application at http://yourusername.pythonanywhere.com/
 
+import sys
+import os
+
+# Add your project directory to the sys.path
+project_home = '/home/yourusername/RMMV'  # <-- CHANGE 'yourusername' to your PythonAnywhere username
+if project_home not in sys.path:
+    sys.path.insert(0, project_home)
+
+# Set the working directory
+os.chdir(project_home)
+
+# Import your Flask app
 from app import create_app
-
 application = create_app()
-app = application  # Reference alias for compatibility
-
-if __name__ == '__main__':
-    # Fallback to run locally if executed directly
-    application.run(debug=True, port=5000)

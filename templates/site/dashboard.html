@@ -88,6 +88,12 @@
     <div class="d-flex align-items-center justify-content-between py-2 {% if not loop.last %}border-bottom{% endif %}">
       <div>
         <div class="fw-500 fs-sm">{{ entry.project.name }}</div>
+        {% if entry.project.funding_agency %}
+        <div class="fs-xs text-muted">
+          <i class="bi bi-bank me-1"></i>{{ entry.project.funding_agency }}
+          &middot; <i class="bi bi-building me-1"></i>{{ entry.project.ulb.name if entry.project.ulb else '—' }}
+        </div>
+        {% endif %}
         <div class="fs-xs text-muted">
           {{ entry.activity.activity_name if entry.activity else '—' }}
           &middot; Qty: {{ entry.quantity }}

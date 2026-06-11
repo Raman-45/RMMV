@@ -45,7 +45,7 @@
         {% else %}{{ url_for('site.dashboard') }}{% endif %}
       " class="navbar-brand">
         <span class="brand-icon">R</span>
-        <span>RMMV<span class="brand-sub">Monitoring Centre</span></span>
+        <span>RMMV<span class="brand-sub">Tamil Nadu Urban Infrastructure Projects</span></span>
       </a>
     </div>
 
@@ -106,13 +106,19 @@
         </a>
       </li>
       <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'state.create_project' %}active{% endif %}"
+           href="{{ url_for('state.create_project') }}">
+          <i class="bi bi-plus-circle"></i> Create Project
+        </a>
+      </li>
+      <li class="nav-item">
         <a class="nav-link {% if request.endpoint == 'state.audit_logs' %}active{% endif %}"
            href="{{ url_for('state.audit_logs') }}">
           <i class="bi bi-clock-history"></i> Audit Logs
         </a>
       </li>
 
-      {# ---- ULB Officer ---- #}
+      {# ---- ULB / Statutory Body Officer ---- #}
       {% elif current_user.role == 'ulb' %}
       <li class="nav-item">
         <a class="nav-link {% if request.endpoint == 'ulb.dashboard' %}active{% endif %}"
@@ -127,14 +133,15 @@
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link {% if request.endpoint == 'ulb.review_entries' %}active{% endif %}"
-           href="{{ url_for('ulb.review_entries') }}">
-          <i class="bi bi-check2-square"></i> Review Entries
+        <a class="nav-link {% if request.endpoint == 'ulb.create_project' %}active{% endif %}"
+           href="{{ url_for('ulb.create_project') }}">
+          <i class="bi bi-plus-circle"></i> Create Project
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="#">
-          <i class="bi bi-bar-chart-line"></i> Reports
+        <a class="nav-link {% if request.endpoint == 'ulb.review_entries' %}active{% endif %}"
+           href="{{ url_for('ulb.review_entries') }}">
+          <i class="bi bi-check2-square"></i> Review Entries
         </a>
       </li>
 
@@ -156,6 +163,12 @@
         <a class="nav-link {% if request.endpoint == 'site.upload_media' %}active{% endif %}"
            href="{{ url_for('site.upload_media') }}">
           <i class="bi bi-camera"></i> Upload Media
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'site.my_media' %}active{% endif %}"
+           href="{{ url_for('site.my_media') }}">
+          <i class="bi bi-images"></i> My Media
         </a>
       </li>
       <li class="nav-item">

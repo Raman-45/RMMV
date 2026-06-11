@@ -1,33 +1,40 @@
 {% extends "base.html" %}
 
-{% block title %}Projects — RMMV{% endblock %}
+{% block title %}All Projects — RMMV Dashboard{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <h2><i class="bi bi-folder2-open me-2"></i>Projects</h2>
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{{ url_for('state.dashboard') }}">Dashboard</a></li>
-      <li class="breadcrumb-item active">Projects</li>
-    </ol>
-  </nav>
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <h2><i class="bi bi-building-gear me-2"></i>All Projects</h2>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('state.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Projects</li>
+      </ol>
+    </nav>
+  </div>
+  <div>
+    <a href="{{ url_for('state.create_project') }}" class="btn btn-rmmv text-white">
+      <i class="bi bi-plus-lg me-1"></i>Create New Project
+    </a>
+  </div>
 </div>
 
-<div class="card-rmmv mb-4">
-  <div class="card-body-rmmv">
-    <form method="GET" class="row g-3 align-items-end">
-      <div class="col-md-4">
-        <label class="form-label" for="filterULB">ULB</label>
-        <select id="filterULB" name="ulb_id" class="form-select">
+<div class="card-rmmv">
+  <div class="card-header-rmmv">
+    <form method="GET" action="{{ url_for('state.projects') }}" class="row g-3 align-items-center">
+      <div class="col-auto">
+        <label for="ulb_id" class="visually-hidden">ULB</label>
+        <select name="ulb_id" id="ulb_id" class="form-select form-select-sm">
           <option value="">All ULBs</option>
           {% for ulb in ulbs %}
           <option value="{{ ulb.id }}" {% if selected_ulb == ulb.id %}selected{% endif %}>{{ ulb.name }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-md-4">
-        <label class="form-label" for="filterStatus">Status</label>
-        <select id="filterStatus" name="status" class="form-select">
+      <div class="col-auto">
+        <label for="status" class="visually-hidden">Status</label>
+        <select name="status" id="status" class="form-select form-select-sm">
           <option value="">All Statuses</option>
           <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
           <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Completed</option>
@@ -35,46 +42,79 @@
           <option value="critical" {% if selected_status == 'critical' %}selected{% endif %}>Critical</option>
         </select>
       </div>
-      <div class="col-md-4 text-end">
-        <button type="submit" class="btn btn-rmmv btn-rmmv-primary">Filter</button>
-        <a href="{{ url_for('state.projects') }}" class="btn btn-rmmv btn-rmmv-outline">Reset</a>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Apply Filters</button>
+        {% if selected_ulb or selected_status %}
+        <a href="{{ url_for('state.projects') }}" class="btn btn-sm btn-link text-muted">Clear</a>
+        {% endif %}
       </div>
     </form>
   </div>
-</div>
-
-<div class="card-rmmv">
+  
   <div class="card-body-rmmv p-0">
     <div class="table-responsive-rmmv">
-      <table class="table-rmmv mb-0">
+      <table class="table-rmmv">
         <thead>
           <tr>
-            <th>Project</th>
-            <th>ULB</th>
-            <th>Status</th>
-            <th>Physical</th>
-            <th>Financial</th>
-            <th class="text-end">Actions</th>
+            <th width="5%">#</th>
+            <th width="25%">Project Name</th>
+            <th width="20%">ULB</th>
+            <th width="10%">Type</th>
+            <th width="10%">Cost (₹ Cr)</th>
+            <th width="10%">Physical</th>
+            <th width="10%">Financial</th>
+            <th width="5%">Status</th>
+            <th width="5%" class="text-end">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {% for project in projects %}
+          {% for p in projects %}
           <tr>
-            <td>{{ project.name }}</td>
-            <td>{{ project.ulb.name if project.ulb else '—' }}</td>
-            <td><span class="badge-status badge-{{ project.status }}">{{ project.status }}</span></td>
-            <td>{{ project.physical_progress or 0 }}%</td>
-            <td>{{ project.financial_progress or 0 }}%</td>
-            <td class="text-end">
-              <a href="{{ url_for('state.project_detail', id=project.id) }}" class="btn btn-sm btn-rmmv btn-rmmv-outline">
-                View
+            <td class="text-muted">{{ loop.index + (pagination.page - 1) * pagination.per_page }}</td>
+            <td class="fw-500">
+              <a href="{{ url_for('state.project_detail', id=p.id) }}" class="text-decoration-none">
+                {{ p.name }}
               </a>
+            </td>
+            <td><i class="bi bi-building text-muted me-1"></i>{{ p.ulb.name if p.ulb else '—' }}</td>
+            <td>{{ (p.project_type or 'water_supply') | replace('_', ' ') | title }}</td>
+            <td class="fw-600">{{ "%.2f"|format(p.cost) }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress-mini flex-grow-1">
+                  <div class="progress-bar bg-success" style="width: {{ p.physical_progress }}%;"></div>
+                </div>
+                <span class="fs-xs fw-600">{{ "%.0f"|format(p.physical_progress) }}%</span>
+              </div>
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress-mini flex-grow-1">
+                  <div class="progress-bar" style="background-color: var(--red-accent); width: {{ p.financial_progress }}%;"></div>
+                </div>
+                <span class="fs-xs fw-600">{{ "%.0f"|format(p.financial_progress) }}%</span>
+              </div>
+            </td>
+            <td><span class="badge-status badge-{{ p.status }}">{{ p.status }}</span></td>
+            <td class="text-end">
+              <div class="d-flex gap-2 justify-content-end">
+                <a href="{{ url_for('state.project_detail', id=p.id) }}" class="btn btn-sm btn-outline-primary" title="View">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{{ url_for('state.edit_project', id=p.id) }}" class="btn btn-sm btn-outline-secondary" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </a>
+              </div>
             </td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="6" class="text-center py-4">
-              No projects found for the selected criteria.
+            <td colspan="9">
+              <div class="empty-state py-4">
+                <i class="bi bi-folder-x empty-icon"></i>
+                <div class="empty-title">No Projects Found</div>
+                <div class="empty-text">Adjust your filters or create a new project.</div>
+              </div>
             </td>
           </tr>
           {% endfor %}
@@ -82,28 +122,32 @@
       </table>
     </div>
   </div>
+  
+  {% if pagination.pages > 1 %}
+  <div class="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center">
+    <div class="fs-sm text-muted">
+      Showing {{ pagination.first }} to {{ pagination.last }} of {{ pagination.total }} projects
+    </div>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+          <a class="page-link" href="{{ url_for('state.projects', page=pagination.prev_num, ulb_id=selected_ulb, status=selected_status) }}">Previous</a>
+        </li>
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+          {% if page_num %}
+            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('state.projects', page=page_num, ulb_id=selected_ulb, status=selected_status) }}">{{ page_num }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+          <a class="page-link" href="{{ url_for('state.projects', page=pagination.next_num, ulb_id=selected_ulb, status=selected_status) }}">Next</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
 </div>
-
-{% if pagination and pagination.pages > 1 %}
-<nav>
-  <ul class="pagination-rmmv">
-    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-      <a class="page-link" href="?page={{ pagination.prev_num }}&{{ request.query_string.decode() }}">&laquo; Prev</a>
-    </li>
-    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-      {% if p %}
-      <li class="page-item {% if p == pagination.page %}active{% endif %}">
-        <a class="page-link" href="?page={{ p }}&{{ request.query_string.decode() }}">{{ p }}</a>
-      </li>
-      {% else %}
-      <li class="page-item disabled"><span class="page-link">…</span></li>
-      {% endif %}
-    {% endfor %}
-    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-      <a class="page-link" href="?page={{ pagination.next_num }}&{{ request.query_string.decode() }}">Next &raquo;</a>
-    </li>
-  </ul>
-</nav>
-{% endif %}
-
 {% endblock %}

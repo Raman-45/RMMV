@@ -53,6 +53,12 @@ def login():
             flash('Your account has been deactivated. Contact the administrator.', 'warning')
             return render_template('login.html')
 
+        # Check if the selected role matches the user's actual role
+        selected_role = request.form.get('role')
+        if selected_role and selected_role != user.role:
+            flash('Invalid credentials for the selected role.', 'danger')
+            return render_template('login.html')
+
         # Authenticate & create session
         login_user(user, remember=True)
 
