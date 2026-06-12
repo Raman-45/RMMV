@@ -64,7 +64,7 @@
       </div>
       <div class="col-auto">
         <span class="text-muted"><i class="bi bi-currency-rupee me-1"></i>Cost:</span>
-        <span class="fw-600">₹ {{ "%.2f"|format(project.cost or 0) }} Cr</span>
+        <span class="fw-600">{% if project.cost is not none %}₹ {{ "%.2f"|format(project.cost) }} Cr{% else %}—{% endif %}</span>
       </div>
       <div class="col-auto">
         <span class="text-muted"><i class="bi bi-calendar-event me-1"></i></span>
@@ -75,11 +75,11 @@
         <div class="d-flex gap-3">
           <div class="text-center">
             <div class="fs-xs text-muted">Physical</div>
-            <div class="fw-700 text-success">{{ "%.0f"|format(project.physical_progress or 0) }}%</div>
+            <div class="fw-700 text-success">{% if project.physical_progress is not none %}{{ "%.0f"|format(project.physical_progress) }}%{% else %}—{% endif %}</div>
           </div>
           <div class="text-center">
             <div class="fs-xs text-muted">Financial</div>
-            <div class="fw-700" style="color:var(--red-accent)">{{ "%.0f"|format(project.financial_progress or 0) }}%</div>
+            <div class="fw-700" style="color:var(--red-accent)">{% if project.financial_progress is not none %}{{ "%.0f"|format(project.financial_progress) }}%{% else %}—{% endif %}</div>
           </div>
         </div>
       </div>
@@ -177,7 +177,7 @@
                   <tr>
                     <th>Activity</th>
                     <th>Unit</th>
-                    <th>Target</th>
+                    <th>BOQ</th>
                     <th>Achieved</th>
                     <th>Completion</th>
                     <th>Progress</th>

@@ -78,22 +78,30 @@
             </td>
             <td><i class="bi bi-building text-muted me-1"></i>{{ p.ulb.name if p.ulb else '—' }}</td>
             <td>{{ (p.project_type or 'water_supply') | replace('_', ' ') | title }}</td>
-            <td class="fw-600">{{ "%.2f"|format(p.cost) }}</td>
+            <td class="fw-600">{% if p.cost is not none %}₹ {{ "%.2f"|format(p.cost) }}{% else %}—{% endif %}</td>
             <td>
+              {% if p.physical_progress is not none %}
               <div class="d-flex align-items-center gap-2">
                 <div class="progress-mini flex-grow-1">
                   <div class="progress-bar bg-success" style="width: {{ p.physical_progress }}%;"></div>
                 </div>
                 <span class="fs-xs fw-600">{{ "%.0f"|format(p.physical_progress) }}%</span>
               </div>
+              {% else %}
+              <div class="text-muted text-center">—</div>
+              {% endif %}
             </td>
             <td>
+              {% if p.financial_progress is not none %}
               <div class="d-flex align-items-center gap-2">
                 <div class="progress-mini flex-grow-1">
                   <div class="progress-bar" style="background-color: var(--red-accent); width: {{ p.financial_progress }}%;"></div>
                 </div>
                 <span class="fs-xs fw-600">{{ "%.0f"|format(p.financial_progress) }}%</span>
               </div>
+              {% else %}
+              <div class="text-muted text-center">—</div>
+              {% endif %}
             </td>
             <td><span class="badge-status badge-{{ p.status }}">{{ p.status }}</span></td>
             <td class="text-end">

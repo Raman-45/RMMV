@@ -93,7 +93,7 @@
               <input type="date" name="start_date" class="form-control" value="{{ project.start_date.strftime('%Y-%m-%d') if project and project.start_date else '' }}">
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-500">Target Completion Date</label>
+              <label class="form-label fw-500">BOQ Completion Date</label>
               <input type="date" name="target_date" class="form-control" value="{{ project.target_date.strftime('%Y-%m-%d') if project and project.target_date else '' }}">
             </div>
           </div>
@@ -156,7 +156,7 @@
                 <tr>
                   <th width="45%">Activity Name</th>
                   <th width="15%">Unit</th>
-                  <th width="20%">Target Quantity</th>
+                  <th width="20%">BOQ Quantity</th>
                   <th width="15%">Weightage (0-1)</th>
                   <th width="5%"></th>
                 </tr>

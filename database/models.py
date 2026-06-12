@@ -117,9 +117,9 @@ class Project(db.Model):
     description = db.Column(db.Text, nullable=True)
     project_type = db.Column(db.String(50), nullable=False, default='water_supply')
     # project_type: water_supply | sewerage | drainage | solid_waste | other
-    cost = db.Column(db.Float, nullable=False, default=0.0)  # in Crores (₹)
-    physical_progress = db.Column(db.Float, nullable=False, default=0.0)  # 0–100
-    financial_progress = db.Column(db.Float, nullable=False, default=0.0)  # 0–100
+    cost = db.Column(db.Float, nullable=True)  # in Crores (₹)
+    physical_progress = db.Column(db.Float, nullable=True)  # 0–100
+    financial_progress = db.Column(db.Float, nullable=True)  # 0–100
     status = db.Column(db.String(20), nullable=False, default='active')  # active | completed | delayed | critical
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
@@ -355,7 +355,7 @@ class ProjectAsset(db.Model):
     pump_house  — Pump House / Booster Station (Point)
     valve       — Valve Chamber (Point)
     meter       — Flow/Pressure Meter (Point)
-    manhole     — Manhole / Inspection Chamber (Point)
+    machine_hole — Machine Hole / Inspection Chamber (Point)
 
     Construction Status
     -------------------
@@ -367,7 +367,7 @@ class ProjectAsset(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
     asset_type = db.Column(db.String(30), nullable=False)
-    # asset_type: pipeline | stp | wtp | oht | pump_house | valve | meter | manhole
+    # asset_type: pipeline | stp | wtp | oht | pump_house | valve | meter | machine_hole
     name = db.Column(db.String(200), nullable=False)
     geojson = db.Column(db.Text, nullable=False)  # GeoJSON geometry (Point/LineString/Polygon)
     status = db.Column(db.String(20), nullable=False, default='not_started')

@@ -264,7 +264,7 @@ function initActivityChart(canvasId, labels, targetQty, achieved) {
       labels: labels,
       datasets: [
         {
-          label: 'Target',
+          label: 'BOQ',
           data: targetQty,
           backgroundColor: 'rgba(10, 25, 47, 0.2)',
           borderColor: '#0a192f',

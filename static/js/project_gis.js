@@ -36,7 +36,7 @@ function getAssetIcon(type) {
         case 'pump_house': return 'bi-gear-wide-connected';
         case 'valve': return 'bi-circle';
         case 'meter': return 'bi-speedometer';
-        case 'manhole': return 'bi-circle-square';
+        case 'machine_hole': return 'bi-circle-square';
         default: return 'bi-geo-alt';
     }
 }

@@ -105,8 +105,9 @@
           <tr>
             <td>{{ loop.index }}</td>
             <td class="fw-500">{{ p.name }}</td>
-            <td>{{ "%.2f"|format(p.cost or 0) }}</td>
+            <td>{% if p.cost is not none %}₹ {{ "%.2f"|format(p.cost) }}{% else %}—{% endif %}</td>
             <td>
+              {% if p.physical_progress is not none %}
               <span class="fw-600">{{ "%.1f"|format(p.physical_progress) }}%</span>
               <div class="progress-mini">
                 <div class="progress-bar
@@ -116,12 +117,19 @@
                   {% else %}bg-danger{% endif %}"
                   style="width:{{ p.physical_progress }}%"></div>
               </div>
+              {% else %}
+              <div class="text-muted text-center">—</div>
+              {% endif %}
             </td>
             <td>
+              {% if p.financial_progress is not none %}
               <span class="fw-600">{{ "%.1f"|format(p.financial_progress) }}%</span>
               <div class="progress-mini">
                 <div class="progress-bar bg-navy" style="width:{{ p.financial_progress }}%"></div>
               </div>
+              {% else %}
+              <div class="text-muted text-center">—</div>
+              {% endif %}
             </td>
             <td>
               <span class="badge-status badge-{{ p.status }}">{{ p.status }}</span>

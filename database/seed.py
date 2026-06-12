@@ -8,7 +8,7 @@ and full GIS Project Digital Twin data (ProjectBoundary, ProjectAsset, Device).
 """
 
 import json
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, date, timezone
 from werkzeug.security import generate_password_hash
 
 def seed_database(db):
@@ -25,27 +25,19 @@ def seed_database(db):
 
     # --- 1. Implementing Agencies (ULBs / Statutory Bodies) -------------------
     ulb_chennai = ULB(
-        name='Greater Chennai Corporation', district='Chennai',
+        name='GCC', district='Chennai',
         code='GCC-TN', state='Tamil Nadu', agency_type='Municipal Corporation'
     )
     ulb_kancheepuram = ULB(
         name='Kancheepuram Municipal Corporation', district='Kancheepuram',
         code='KMC-TN', state='Tamil Nadu', agency_type='Municipal Corporation'
     )
-    ulb_madurai = ULB(
-        name='Madurai Municipal Corporation', district='Madurai',
-        code='MMC-TN', state='Tamil Nadu', agency_type='Municipal Corporation'
-    )
-    ulb_twad = ULB(
-        name='TWAD Board', district='State-wide',
-        code='TWAD-TN', state='Tamil Nadu', agency_type='Statutory Body'
-    )
     ulb_cmwssb = ULB(
         name='CMWSSB', district='Chennai',
         code='CMWSSB-TN', state='Tamil Nadu', agency_type='Statutory Body'
     )
     
-    db.session.add_all([ulb_chennai, ulb_kancheepuram, ulb_madurai, ulb_twad, ulb_cmwssb])
+    db.session.add_all([ulb_chennai, ulb_kancheepuram, ulb_cmwssb])
     db.session.commit()
 
     # --- 2. Users ------------------------------------------------------------
@@ -78,9 +70,9 @@ def seed_database(db):
 
     # --- 3. Projects ---------------------------------------------------------
     p1 = Project(
-        name='Kancheepuram UGSS',
+        name='Kancheepuram UGSS Package 1',
         ulb_id=ulb_kancheepuram.id,
-        project_type='Sewerage',
+        project_type='sewerage',
         cost=254.0,
         physical_progress=38.40,
         financial_progress=36.45,
@@ -94,86 +86,86 @@ def seed_database(db):
         description='Progress as on 25 April 2026'
     )
     p2 = Project(
-        name='Kancheepuram STP',
+        name='kancheepuram UGSS package 2',
         ulb_id=ulb_kancheepuram.id,
-        project_type='Sewerage',
-        cost=48.0,
-        physical_progress=35.0,
-        financial_progress=28.0,
-        status='delayed',
-        latitude=13.0120,
-        longitude=80.2340,
-        contractor='SPML',
+        project_type='sewerage',
+        cost=None,
+        physical_progress=None,
+        financial_progress=None,
+        status='active',
+        latitude=12.8355,
+        longitude=79.7080,
+        contractor=None,
         funding_agency='World Bank',
-        start_date=date(2024, 6, 1),
-        target_date=date(2025, 12, 31)
+        start_date=None,
+        target_date=None
     )
     p3 = Project(
-        name='Kancheepuram WSIS',
+        name='Kancheepuram WSIS Package 1',
         ulb_id=ulb_kancheepuram.id,
         project_type='water_supply',
-        cost=18.75,
-        physical_progress=78.0,
-        financial_progress=72.0,
+        cost=None,
+        physical_progress=None,
+        financial_progress=None,
         status='active',
-        latitude=11.0168,
-        longitude=76.9558,
-        contractor='Itron',
+        latitude=12.8320,
+        longitude=79.7010,
+        contractor=None,
         funding_agency='World Bank',
-        start_date=date(2025, 3, 10),
-        target_date=date(2026, 6, 30)
+        start_date=None,
+        target_date=None
     )
     p4 = Project(
-        name='Kancheepuram Intakes',
+        name='kancheepuram WSIS Package 2',
         ulb_id=ulb_kancheepuram.id,
         project_type='water_supply',
-        cost=12.4,
-        physical_progress=92.0,
-        financial_progress=88.0,
-        status='completed',
-        latitude=10.9800,
-        longitude=76.9200,
-        contractor='VA Tech Wabag',
+        cost=None,
+        physical_progress=None,
+        financial_progress=None,
+        status='active',
+        latitude=12.8290,
+        longitude=79.7055,
+        contractor=None,
         funding_agency='World Bank',
-        start_date=date(2023, 11, 1),
-        target_date=date(2025, 2, 28)
+        start_date=None,
+        target_date=None
     )
     p5 = Project(
         name='Madhavaram UGSS',
         ulb_id=ulb_cmwssb.id,
-        project_type='Sewerage',
-        cost=686.54,
-        physical_progress=38.0,
-        financial_progress=32.0,
+        project_type='sewerage',
+        cost=None,
+        physical_progress=None,
+        financial_progress=None,
         status='active',
         latitude=13.1482,
         longitude=80.2310,
-        contractor='L&T Construction',
+        contractor=None,
         funding_agency='KfW',
-        start_date=date(2024, 3, 1),
-        target_date=date(2027, 4, 30)
+        start_date=None,
+        target_date=None
     )
     p6 = Project(
-        name='Kodungaiyur Biomining Plant',
+        name='kodungaiyur Biominning Plant',
         ulb_id=ulb_chennai.id,
-        project_type='Solid Waste Management',
-        cost=641.0,
-        physical_progress=33.0,
-        financial_progress=28.0,
+        project_type='solid_waste',
+        cost=None,
+        physical_progress=None,
+        financial_progress=None,
         status='active',
         latitude=13.1310,
         longitude=80.2560,
-        contractor='Ramky Enviro Engineers',
+        contractor=None,
         funding_agency='KfW',
-        start_date=date(2023, 6, 1),
-        target_date=date(2027, 12, 31)
+        start_date=None,
+        target_date=None
     )
     projects = [p1, p2, p3, p4, p5, p6]
     db.session.add_all(projects)
     db.session.commit()
 
     # --- 4. Activities -------------------------------------------------------
-    # --- 4a. Real activities for Kancheepuram UGSS (p1) from progress report ---
+    # --- Only real activities for Kancheepuram UGSS Package 1 (p1) ---
     p1_activities = [
         Activity(
             project_id=p1.id,
@@ -185,7 +177,7 @@ def seed_database(db):
         ),
         Activity(
             project_id=p1.id,
-            activity_name='Manhole Erection (7,437 Nos)',
+            activity_name='Machine Hole Erection (7,437 Nos)',
             unit='Nos',
             target_qty=7437.0,
             achieved_qty=4202.0,
@@ -215,7 +207,6 @@ def seed_database(db):
             achieved_qty=5.0,
             weightage=0.10
         ),
-
         Activity(
             project_id=p1.id,
             activity_name='Lifting Stations (7 Nos — LS-5A to LS-7C)',
@@ -234,48 +225,10 @@ def seed_database(db):
         ),
     ]
     db.session.add_all(p1_activities)
-
-    # --- 4b. Generic activities for other projects ---
-    for proj in [p2, p3, p4, p5, p6]:
-        act1 = Activity(
-            project_id=proj.id,
-            activity_name='Excavation & Trenching',
-            unit='RMT',
-            target_qty=10000.0,
-            achieved_qty=10000.0 * (proj.physical_progress / 100),
-            weightage=0.20
-        )
-        act2 = Activity(
-            project_id=proj.id,
-            activity_name='Pipe Laying & Jointing',
-            unit='RMT',
-            target_qty=10000.0,
-            achieved_qty=10000.0 * (proj.physical_progress / 100),
-            weightage=0.35
-        )
-        act3 = Activity(
-            project_id=proj.id,
-            activity_name='Tank / Structure Construction',
-            unit='Nos',
-            target_qty=5.0,
-            achieved_qty=5.0 * (proj.physical_progress / 100),
-            weightage=0.30
-        )
-        act4 = Activity(
-            project_id=proj.id,
-            activity_name='Testing & Commissioning',
-            unit='Nos',
-            target_qty=5.0,
-            achieved_qty=5.0 * (proj.physical_progress / 100),
-            weightage=0.15
-        )
-        db.session.add_all([act1, act2, act3, act4])
-    
     db.session.commit()
 
     # --- 5. Project Boundaries (GeoJSON) -------------------------------------
     def make_polygon(center_lat, center_lng, radius_deg=0.02):
-        # A simple box around the center for demo purposes
         return {
             "type": "Polygon",
             "coordinates": [[
@@ -297,8 +250,7 @@ def seed_database(db):
 
     db.session.commit()
 
-    # --- 6. Project Assets (GIS Features) ------------------------------------
-    # Add assets to P1 (Chennai Pipeline)
+    # --- 6. Project Assets (GIS Features) — Only for Kancheepuram UGSS Package 1 (p1) ---
     assets_p1 = [
         ProjectAsset(
             project_id=p1.id,
@@ -307,7 +259,7 @@ def seed_database(db):
             geojson=json.dumps({
                 "type": "LineString",
                 "coordinates": [
-                    [80.2600, 13.0750], [80.2650, 13.0800], [80.2707, 13.0827], [80.2800, 13.0850]
+                    [79.695, 12.830], [79.700, 12.832], [79.7036, 12.8342], [79.710, 12.836]
                 ]
             }),
             status='installation',
@@ -317,10 +269,10 @@ def seed_database(db):
         ProjectAsset(
             project_id=p1.id,
             asset_type='oht',
-            name='Velachery OHT',
+            name='Kancheepuram OHT',
             geojson=json.dumps({
                 "type": "Point",
-                "coordinates": [80.2600, 13.0750]
+                "coordinates": [79.700, 12.832]
             }),
             status='completed',
             properties_json=json.dumps({"capacity": "15 Lakh Litres", "type": "Overhead Tank"}),
@@ -329,10 +281,10 @@ def seed_database(db):
         ProjectAsset(
             project_id=p1.id,
             asset_type='pump_house',
-            name='Zone A Booster Station',
+            name='Kancheepuram Pumping Station',
             geojson=json.dumps({
                 "type": "Point",
-                "coordinates": [80.2800, 13.0850]
+                "coordinates": [79.710, 12.836]
             }),
             status='testing',
             properties_json=json.dumps({"capacity": "500 HP", "pumps": 3}),
@@ -340,62 +292,30 @@ def seed_database(db):
         )
     ]
     
-    # Add a WTP to P2
-    assets_p2 = [
-        ProjectAsset(
-            project_id=p2.id,
-            asset_type='wtp',
-            name='Chembarambakkam WTP Module 2',
-            geojson=json.dumps({
-                "type": "Point",
-                "coordinates": [80.2340, 13.0120]
-            }),
-            status='excavation',
-            properties_json=json.dumps({"capacity": "80 MLD", "technology": "Rapid Sand Filtration"}),
-            description='Water treatment plant expansion'
-        )
-    ]
-
-    # Add meters to P3
-    assets_p3 = [
-        ProjectAsset(
-            project_id=p3.id,
-            asset_type='meter',
-            name='Bulk Flow Meter - RS Puram',
-            geojson=json.dumps({
-                "type": "Point",
-                "coordinates": [76.9558, 11.0168]
-            }),
-            status='completed',
-            properties_json=json.dumps({"size": "400mm", "type": "Electromagnetic"}),
-            description='Smart flow meter on main feeder'
-        )
-    ]
-
-    db.session.add_all(assets_p1 + assets_p2 + assets_p3)
+    db.session.add_all(assets_p1)
     db.session.commit()
 
-    # --- 7. Devices ----------------------------------------------------------
+    # --- 7. Devices — Only for Kancheepuram UGSS Package 1 (p1) ---
     dev1 = Device(
         project_id=p1.id,
         device_type='drone',
         name='DJI Mavic 3 Enterprise - RMMV1',
         serial_number='DJI-M3E-001',
         status='active',
-        latitude=13.0827,
-        longitude=80.2707,
+        latitude=12.8342,
+        longitude=79.7036,
         last_sync=datetime.now(timezone.utc),
         metadata_json=json.dumps({"firmware": "v1.0.4", "battery": "82%"})
     )
     dev2 = Device(
         project_id=p1.id,
         device_type='cctv',
-        name='Site Cam - Velachery OHT',
+        name='Site Cam - Kancheepuram OHT',
         serial_number='CCTV-HIK-042',
         status='active',
-        latitude=13.0750,
-        longitude=80.2600,
-        last_sync=datetime.now(timezone.utc) - timedelta(minutes=5),
+        latitude=12.8320,
+        longitude=79.7000,
+        last_sync=datetime.now(timezone.utc),
         metadata_json=json.dumps({"resolution": "4K", "network": "4G"})
     )
     
