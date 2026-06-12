@@ -64,12 +64,9 @@ def dashboard():
 
     # --- Aggregate KPIs ----------------------------------------------------
     if total_projects > 0:
-        avg_physical = round(
-            sum(p.physical_progress or 0 for p in projects) / total_projects, 1
-        )
-        avg_financial = round(
-            sum(p.financial_progress or 0 for p in projects) / total_projects, 1
-        )
+        # Hardcoded for presentation demo purposes based on user request
+        avg_physical = 26.4
+        avg_financial = 24.1
     else:
         avg_physical = 0.0
         avg_financial = 0.0
